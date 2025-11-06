@@ -1,0 +1,114 @@
+# Example analysis configuration for GROUNDEEP Analysis Pipeline
+# Copy this file and customize for your needs
+
+# ==== GLOBAL SETTINGS ====
+seed: 42
+use_wandb: false
+output_root: results/analysis
+val_size: 0.05
+layers: top  # Options: 'top', 'all', or list like [1, 2, 3]
+
+# ==== ANALYSIS STAGES ====
+# Enable/disable and configure each analysis stage
+
+# Linear probing for feature prediction
+probing:
+  enabled: true
+  layers: [top]
+  n_bins: 5
+  steps: 1000
+  lr: 0.01
+
+# Representational Similarity Analysis
+rsa:
+  enabled: true
+  alpha: 0.01
+  metric: cosine
+
+# Representational Dissimilarity Matrices
+rdm:
+  enabled: true
+  metric: euclidean
+
+# Monotonicity analysis
+monotonicity:
+  enabled: true
+  alpha: 0.01
+
+# Partial RSA (controlling for confounds)
+partial_rsa:
+  enabled: true
+  alpha: 0.01
+
+# Reconstruction quality metrics
+reconstruction:
+  enabled: true
+  metrics: [mse, afp, ssim]
+  n_samples: 100
+
+# Dimensionality reduction
+dimensionality:
+  enabled: true
+  methods:
+    pca:
+      enabled: true
+      n_components: 50
+    umap:
+      enabled: true
+      n_neighbors: 15
+      min_dist: 0.1
+    tsne:
+      enabled: false  # Slower, disable by default
+
+# Centered Kernel Alignment
+cka:
+  enabled: true
+  kernel: linear
+
+# Behavioral tasks
+behavioral:
+  enabled: true
+  tasks:
+    comparison: true
+    fixed_reference: true
+    estimation: true
+  fixed_refs: [10, 20, 30]
+
+# Power-law fitting
+powerlaw:
+  enabled: true
+  method: loglog
+
+# ==== MODEL CONFIGURATION ====
+# Define models to analyze
+models:
+  # Example 1: DBN model
+  - arch: iDBN_1500_500
+    distribution: uniform
+    dataset_path: path/to/dataset
+    dataset_name: dataset.npz
+    model_uniform: path/to/uniform_model.pkl
+    model_zipfian: path/to/zipfian_model.pkl
+    val_size: 0.10
+    # adapter_type: auto  # Automatically detected
+
+  # Example 2: VAE model
+  # - arch: MyVAE
+  #   distribution: uniform
+  #   dataset_path: path/to/dataset
+  #   dataset_name: dataset.npz
+  #   model_uniform: path/to/vae_model.pth
+  #   adapter_type: vae  # Force VAE adapter
+  #   adapter_config:
+  #     use_sampling: false  # Use mean instead of sampling
+
+  # Example 3: Pre-trained CNN
+  # - arch: ResNet50
+  #   distribution: imagenet
+  #   dataset_path: path/to/imagenet
+  #   dataset_name: val_data.npz
+  #   model_uniform: path/to/resnet50.pth
+  #   adapter_type: pytorch
+  #   adapter_config:
+  #     output_layer: "layer4"
+  #     flatten_output: true
