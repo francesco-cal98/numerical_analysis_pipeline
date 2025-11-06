@@ -2,17 +2,12 @@
 
 from pathlib import Path
 from typing import Dict, Any, List
-import sys
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.analyses.pca_geometry import run_pca_geometry
-from src.analyses.pca_report import generate_pca_decomposition_report
+from groundeep_analysis.internal.analyses.pca_geometry import run_pca_geometry
+from groundeep_analysis.internal.analyses.pca_report import generate_pca_decomposition_report
 
 
 class DimensionalityStage:
@@ -156,10 +151,10 @@ class DimensionalityStage:
 
         try:
             report = run_pca_geometry(
-                X=Z,
-                y=labels,
+                embeddings=Z,
+                labels=labels,
+                name=tag,
                 outdir=pca_geo_dir,
-                tag=tag,
                 per_class=per_class,
                 run_isomap=run_isomap,
             )
@@ -198,10 +193,8 @@ class DimensionalityStage:
 
         try:
             report_dict = generate_pca_decomposition_report(
-                X=Z,
-                y=labels,
-                regime_name=regime_name,
-                layer_tag=layer_tag,
+                embeddings=Z,
+                labels=labels,
                 out_dir=pca_rep_dir,
                 random_state=random_state,
             )

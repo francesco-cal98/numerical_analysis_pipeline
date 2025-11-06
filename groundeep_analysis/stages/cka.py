@@ -2,17 +2,12 @@
 
 from pathlib import Path
 from typing import Dict, Any, Tuple, List
-import sys
 import time
 import numpy as np
 import pandas as pd
 import torch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.analyses.cka import (
+from groundeep_analysis.internal.analyses.cka import (
     compute_layerwise_cka,
     plot_cka_heatmap,
     permutation_test_cka,

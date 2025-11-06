@@ -1,0 +1,41 @@
+seed: 123
+output_root: ../results
+use_wandb: false
+layers: top
+
+probing:
+  enabled: true
+  layers: [top]
+  n_bins: 4
+  steps: 200
+  lr: 0.01
+  patience: 10
+
+rsa: {enabled: false}
+rdm: {enabled: false}
+monotonicity: {enabled: false}
+partial_rsa: {enabled: false}
+
+mse: {enabled: false}
+afp: {enabled: false}
+ssim: {enabled: false}
+
+pca_geometry: {enabled: false}
+pca_report: {enabled: false}
+tsne: {enabled: false}
+umap: {enabled: false}
+
+cka:
+  enabled: false
+
+behavioral:
+  enabled: false
+
+models:
+  - arch: toy_mlp
+    distribution: uniform
+    dataset_path: ../assets
+    dataset_name: toy_dataset.npz
+    model_uniform: ../assets/toy_uniform_model.pkl
+    model_zipfian: ../assets/toy_zipfian_model.pkl
+    val_size: 0.2

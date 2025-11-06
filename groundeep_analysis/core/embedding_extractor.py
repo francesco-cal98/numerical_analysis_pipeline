@@ -9,19 +9,13 @@ Replaces the embedding extraction parts of Embedding_analysis with:
 - Adapter system for model-agnostic extraction
 """
 
-import sys
-from pathlib import Path
 from typing import Dict, Optional, Tuple, List
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from pipeline_refactored.core.model_manager import ModelManager
-from pipeline_refactored.core.adapters import BaseAdapter
+from groundeep_analysis.core.model_manager import ModelManager
+from groundeep_analysis.core.adapters import BaseAdapter
 
 
 class EmbeddingExtractor:

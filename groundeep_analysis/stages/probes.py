@@ -2,19 +2,13 @@
 
 from pathlib import Path
 from typing import Dict, Any
-import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.utils.probe_utils import log_linear_probe
-# Import from clean pipeline_refactored (zero dependency on analyze.py)
-from pipeline_refactored.core.probe_model import ProbeReadyModel
+from groundeep_analysis.internal.utils import log_linear_probe
+from groundeep_analysis.core.probe_model import ProbeReadyModel
 
 
 class LinearProbesStage:

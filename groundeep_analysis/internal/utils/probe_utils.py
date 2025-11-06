@@ -1,0 +1,463 @@
+import os
+import random
+from typing import List
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+try:
+    import wandb
+except Exception:
+    wandb = None
+
+
+@torch.no_grad()
+def compute_val_embeddings_and_features(model, upto_layer: int | None = None) -> tuple[torch.Tensor, dict]:
+    assert model.val_loader is not None, "val_loader is None."
+
+    embeds = []
+    for batch_data, batch_labels in model.val_loader:
+        x = (batch_data.to(model.device) if not getattr(model, "text_flag", False) else batch_labels.to(model.device))
+        x = x.view(x.size(0), -1).float()
+        z = model.represent(x) if upto_layer is None else model.represent(x, upto_layer=upto_layer)
+        embeds.append(z.detach().cpu())
+    E = torch.cat(embeds, dim=0)  # [N, D]
+
+    def _get_feat(d: dict, *candidates):
+        norm = {k.lower().replace(" ", "").replace("_", ""): k for k in d.keys()}
+        for c in candidates:
+            key = norm.get(c.lower().replace(" ", "").replace("_", ""))
+            if key is not None:
+                return d[key]
+        return None
+
+    feats_src = getattr(model, "features", None)
+    if feats_src is None:
+        raise RuntimeError("model.features is required")
+
+    cum_area_t = _get_feat(feats_src, "Cumulative Area", "cum_area")
+    chull_t = _get_feat(feats_src, "Convex Hull", "convex_hull", "convexhull")
+    labels_t = _get_feat(feats_src, "Labels", "labels")
+    density_t = _get_feat(feats_src, "Density", "density")
+
+    def _to_1d_float(t):
+        if t is None:
+            return None
+        t = torch.as_tensor(t)
+        if t.ndim == 2:
+            t = torch.argmax(t, dim=1)
+        return t.view(-1).to(torch.float32).cpu()
+
+    cum_area = _to_1d_float(cum_area_t)
+    chull = _to_1d_float(chull_t)
+    labels = _to_1d_float(labels_t)
+    density = _to_1d_float(density_t)
+
+    n = E.size(0)
+
+    def _check(name, v):
+        if v is None:
+            return False
+        if v.numel() != n:
+            raise RuntimeError(f"Feature '{name}' length mismatch: {v.numel()} vs embeddings {n}.")
+        return True
+
+    feats = {}
+    if _check("cum_area", cum_area):
+        feats["cum_area"] = cum_area
+    if _check("convex_hull", chull):
+        feats["convex_hull"] = chull
+    if _check("labels", labels):
+        feats["labels"] = labels
+    if density is not None and _check("density", density):
+        feats["density"] = density
+
+    return E, feats
+
+
+@torch.no_grad()
+def compute_joint_embeddings_and_features(model) -> tuple[torch.Tensor, dict]:
+    assert model.val_loader is not None, "val_loader is None."
+
+    embeds = []
+    for img_data, labels in model.val_loader:
+        z = model.represent((img_data.to(model.device), labels.to(model.device)))
+        embeds.append(z.detach().cpu())
+    if not embeds:
+        return torch.empty(0), {}
+
+    E = torch.cat(embeds, dim=0)
+    feats_src = getattr(model, "features", None)
+    if feats_src is None:
+        raise RuntimeError("model.features is required")
+
+    def _get_feat(d: dict, *candidates):
+        norm = {k.lower().replace(" ", "").replace("_", ""): k for k in d.keys()}
+        for c in candidates:
+            key = norm.get(c.lower().replace(" ", "").replace("_", ""))
+            if key is not None:
+                return d[key]
+        return None
+
+    def _to_1d_float(t):
+        if t is None:
+            return None
+        t = torch.as_tensor(t)
+        if t.ndim == 2:
+            t = torch.argmax(t, dim=1)
+        return t.view(-1).to(torch.float32).cpu()
+
+    cum_area = _to_1d_float(_get_feat(feats_src, "Cumulative Area", "cum_area"))
+    chull = _to_1d_float(_get_feat(feats_src, "Convex Hull", "convex_hull", "convexhull"))
+    labels = _to_1d_float(_get_feat(feats_src, "Labels", "labels"))
+    density = _to_1d_float(_get_feat(feats_src, "Density", "density"))
+
+    n = E.size(0)
+
+    def _check(name, v):
+        if v is None:
+            return False
+        if v.numel() != n:
+            raise RuntimeError(f"Feature '{name}' length mismatch: {v.numel()} vs embeddings {n}.")
+        return True
+
+    feats = {}
+    if _check("cum_area", cum_area):
+        feats["cum_area"] = cum_area
+    if _check("convex_hull", chull):
+        feats["convex_hull"] = chull
+    if _check("labels", labels):
+        feats["labels"] = labels
+    if density is not None and _check("density", density):
+        feats["density"] = density
+
+    return E, feats
+
+
+def make_bin_labels(values: torch.Tensor, n_bins: int = 5):
+    qs = torch.linspace(0, 1, steps=n_bins + 1)
+    edges = torch.quantile(values, qs, interpolation="linear")
+    for k in range(1, len(edges)):
+        if edges[k] <= edges[k - 1]:
+            edges[k] = edges[k - 1] + 1e-6
+    inner = edges[1:-1]
+    labels = torch.bucketize(values, inner, right=False)
+    return labels, edges
+
+
+def _format_bin_names(edges: torch.Tensor, precision: int = 4):
+    e = edges.detach().cpu().numpy().astype(float)
+    fmt = lambda v: f"{v:.{precision}f}".rstrip("0").rstrip(".")
+    names = [f"{fmt(e[i])}-{fmt(e[i + 1])}" for i in range(len(e) - 1)]
+    return names
+
+
+def stratified_split(labels: torch.Tensor, test_size: float = 0.2, rng_seed: int = 42):
+    rng = random.Random(rng_seed)
+    train_idx, test_idx = [], []
+    classes = torch.unique(labels).tolist()
+    for c in classes:
+        idxs = (labels == c).nonzero(as_tuple=True)[0].tolist()
+        rng.shuffle(idxs)
+        n = len(idxs)
+        if n <= 1:
+            test_idx.extend(idxs)
+            continue
+        n_test = max(1, int(round(n * test_size)))
+        n_test = min(n_test, n - 1)
+        test_idx.extend(idxs[:n_test])
+        train_idx.extend(idxs[n_test:])
+    return train_idx, test_idx
+
+
+def train_linear_classifier(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    X_val: np.ndarray,
+    y_val: np.ndarray,
+    device: torch.device,
+    n_classes: int,
+    max_steps: int = 1000,
+    lr: float = 1e-2,
+    weight_decay: float = 0.0,
+    patience: int = 20,
+    min_delta: float = 0.0,
+):
+    def _run(inner_device: torch.device):
+        D = X_train.shape[1]
+        model = nn.Linear(D, n_classes).to(inner_device)
+        opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+
+        Xtr = torch.tensor(X_train, dtype=torch.float32, device=inner_device)
+        ytr = torch.tensor(y_train, dtype=torch.long, device=inner_device)
+        Xva = torch.tensor(X_val, dtype=torch.float32, device=inner_device)
+        yva = torch.tensor(y_val, dtype=torch.long, device=inner_device)
+
+        best_loss = float("inf")
+        best_state = None
+        no_improve = 0
+
+        model.train()
+        for _ in range(max_steps):
+            opt.zero_grad()
+            logits = model(Xtr)
+            loss = F.cross_entropy(logits, ytr)
+            loss.backward()
+            opt.step()
+
+            model.eval()
+            with torch.no_grad():
+                v_logits = model(Xva)
+                v_loss = F.cross_entropy(v_logits, yva).item()
+            model.train()
+
+            if v_loss < best_loss - min_delta:
+                best_loss = v_loss
+                best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+                no_improve = 0
+            else:
+                no_improve += 1
+                if no_improve >= patience:
+                    break
+
+        if best_state is not None:
+            model.load_state_dict(best_state)
+        model.eval()
+        with torch.no_grad():
+            logits = model(Xva)
+            preds = torch.argmax(logits, dim=1)
+            acc = (preds == yva).float().mean().item()
+
+        return acc, yva.detach().cpu().tolist(), preds.detach().cpu().tolist()
+
+    try:
+        return _run(device)
+    except RuntimeError as exc:
+        msg = str(exc)
+        is_cuda = device.type == "cuda"
+        oom = "CUDA out of memory" in msg or "CUBLAS_STATUS_ALLOC_FAILED" in msg
+        if is_cuda and oom:
+            print("[probe] CUDA OOM detected, retrying linear probe on CPU…")
+            torch.cuda.empty_cache()
+            return _run(torch.device("cpu"))
+        raise
+
+
+def _confusion_df(y_true, y_pred, n_classes: int, bin_names: List[str]) -> pd.DataFrame:
+    cm = np.zeros((n_classes, n_classes), dtype=int)
+    for t, p in zip(y_true, y_pred):
+        if 0 <= t < n_classes and 0 <= p < n_classes:
+            cm[t, p] += 1
+    df = pd.DataFrame(cm, index=bin_names, columns=bin_names)
+    df.index.name = "True"
+    df.columns.name = "Pred"
+    return df
+
+
+def _save_confusion_csv(df: pd.DataFrame, model, metric_name: str, epoch: int) -> str:
+    os.makedirs(model.arch_dir, exist_ok=True)
+    path = os.path.join(model.arch_dir, f"probe_{metric_name}_confusion_epoch{epoch}.csv")
+    df.to_csv(path)
+    return path
+
+
+def _log_confusion_table_wandb(wandb_run, df: pd.DataFrame, metric_name: str, epoch: int):
+    if not wandb_run or wandb is None:
+        return
+    try:
+        table = wandb.Table(dataframe=df)
+        wandb_run.log({f"probe/{metric_name}/confusion_table": table, "epoch": epoch})
+    except Exception:
+        wandb_run.log({f"probe/{metric_name}/confusion_dict": df.to_dict(), "epoch": epoch})
+
+
+def _log_accuracy_wandb(wandb_run, metric_name: str, acc: float, epoch: int):
+    if not wandb_run or wandb is None:
+        return
+    wandb_run.log({f"probe/{metric_name}/acc": acc, "epoch": epoch})
+
+
+def _log_bin_edges_wandb(wandb_run, metric_name: str, edges: torch.Tensor, epoch: int):
+    if not wandb_run or wandb is None:
+        return
+    try:
+        wandb_run.log({f"probe/{metric_name}/bin_edges": edges.detach().cpu().numpy(), "epoch": epoch})
+    except Exception:
+        pass
+
+
+def _prepare_targets(feats: dict, mkey: str, n_bins: int):
+    vals = feats[mkey].to(torch.float32)
+    y, edges = make_bin_labels(vals, n_bins=n_bins)
+    bin_names = _format_bin_names(edges, precision=4)
+    return y.long(), n_bins, edges, bin_names
+
+
+def log_linear_probe(
+    model,
+    epoch: int,
+    n_bins: int = 5,
+    test_size: float = 0.2,
+    steps: int = 1000,
+    lr: float = 1e-2,
+    rng_seed: int = 42,
+    patience: int = 20,
+    min_delta: float = 0.0,
+    save_csv: bool = True,
+    upto_layer: int | None = None,
+    layer_tag: str | None = None,
+):
+    E, feats = compute_val_embeddings_and_features(model, upto_layer=upto_layer)
+    E_np = E.numpy()
+
+    probe_targets = ["cum_area", "convex_hull", "labels"]
+    if "density" in feats:
+        probe_targets.append("density")
+
+    summary_rows: List[dict[str, object]] = []
+
+    for mkey in probe_targets:
+        y, n_classes, edges, bin_names = _prepare_targets(feats, mkey, n_bins=n_bins)
+        metric_name = f"{layer_tag}/{mkey}" if layer_tag else mkey
+
+        train_idx, test_idx = stratified_split(y, test_size=test_size, rng_seed=rng_seed)
+        if len(train_idx) == 0 or len(test_idx) == 0:
+            _log_accuracy_wandb(model.wandb_run, f"{metric_name}/warn_empty_split", 0.0, epoch)
+            continue
+
+        Xtr, ytr = E_np[train_idx], y.numpy()[train_idx]
+        Xte, yte = E_np[test_idx], y.numpy()[test_idx]
+
+        acc, y_true, y_pred = train_linear_classifier(
+            Xtr,
+            ytr,
+            Xte,
+            yte,
+            device=model.device,
+            n_classes=n_classes,
+            max_steps=steps,
+            lr=lr,
+            weight_decay=0.0,
+            patience=patience,
+            min_delta=min_delta,
+        )
+
+        df = _confusion_df(y_true, y_pred, n_classes, bin_names)
+
+        summary_rows.append(
+            {
+                "metric": metric_name,
+                "accuracy": acc,
+                "confusion": df.copy(),
+            }
+        )
+
+        _log_accuracy_wandb(model.wandb_run, metric_name, acc, epoch)
+        _log_confusion_table_wandb(model.wandb_run, df, metric_name, epoch)
+        _log_bin_edges_wandb(model.wandb_run, metric_name, edges, epoch)
+
+        if save_csv:
+            csv_metric_name = metric_name.replace("/", "_")
+            csv_path = _save_confusion_csv(df, model, csv_metric_name, epoch)
+            if model.wandb_run and wandb is not None:
+                model.wandb_run.log({f"probe/{metric_name}/confusion_csv_path": csv_path, "epoch": epoch})
+
+    if summary_rows and model.wandb_run and wandb is not None:
+        labels = [str(row["metric"]) for row in summary_rows]
+        values = [float(row["accuracy"]) for row in summary_rows]
+        fig, ax = plt.subplots(figsize=(max(6, len(labels) * 1.2), 4))
+        ax.bar(range(len(labels)), values, color="steelblue")
+        ax.set_xticks(range(len(labels)))
+        ax.set_xticklabels(labels, rotation=45, ha="right")
+        ax.set_ylim(0, 1)
+        ax.set_ylabel("Accuracy")
+        ax.set_title(f"Linear probe summary @ epoch {epoch}")
+        fig.tight_layout()
+        model.wandb_run.log({f"probe/{layer_tag or 'top'}/summary": wandb.Image(fig)})
+        plt.close(fig)
+
+    return summary_rows
+
+
+def log_joint_linear_probe(
+    model,
+    epoch: int,
+    n_bins: int = 5,
+    test_size: float = 0.2,
+    steps: int = 1000,
+    lr: float = 1e-2,
+    rng_seed: int = 42,
+    patience: int = 20,
+    min_delta: float = 0.0,
+    save_csv: bool = False,
+    metric_prefix: str = "joint",
+):
+    E, feats = compute_joint_embeddings_and_features(model)
+    if E.numel() == 0:
+        return
+    E_np = E.numpy()
+    wandb_run = getattr(model, "wandb_run", None)
+
+    probe_targets = ["cum_area", "convex_hull", "labels"]
+    if "density" in feats:
+        probe_targets.append("density")
+
+    summary_rows = []
+
+    for mkey in probe_targets:
+        y, n_classes, edges, bin_names = _prepare_targets(feats, mkey, n_bins=n_bins)
+        metric_name = f"{metric_prefix}/{mkey}" if metric_prefix else mkey
+
+        train_idx, test_idx = stratified_split(y, test_size=test_size, rng_seed=rng_seed)
+        if len(train_idx) == 0 or len(test_idx) == 0:
+            _log_accuracy_wandb(getattr(model, "wandb_run", None), f"{metric_name}/warn_empty_split", 0.0, epoch)
+            continue
+
+        Xtr, ytr = E_np[train_idx], y.numpy()[train_idx]
+        Xte, yte = E_np[test_idx], y.numpy()[test_idx]
+
+        acc, y_true, y_pred = train_linear_classifier(
+            Xtr,
+            ytr,
+            Xte,
+            yte,
+            device=model.device,
+            n_classes=n_classes,
+            max_steps=steps,
+            lr=lr,
+            weight_decay=0.0,
+            patience=patience,
+            min_delta=min_delta,
+        )
+
+        summary_rows.append((metric_name, acc))
+
+        df = _confusion_df(y_true, y_pred, n_classes, bin_names)
+
+        _log_accuracy_wandb(wandb_run, metric_name, acc, epoch)
+        _log_confusion_table_wandb(wandb_run, df, metric_name, epoch)
+        _log_bin_edges_wandb(wandb_run, metric_name, edges, epoch)
+
+        if save_csv:
+            csv_metric_name = metric_name.replace("/", "_")
+            csv_path = _save_confusion_csv(df, model, csv_metric_name, epoch)
+            if wandb_run and wandb is not None:
+                wandb_run.log({f"probe/{metric_name}/confusion_csv_path": csv_path, "epoch": epoch})
+
+    if summary_rows and wandb_run and wandb is not None:
+        labels = [name for name, _ in summary_rows]
+        values = [val for _, val in summary_rows]
+        fig, ax = plt.subplots(figsize=(max(6, len(labels) * 1.2), 4))
+        ax.bar(range(len(labels)), values, color="indianred")
+        ax.set_xticks(range(len(labels)))
+        ax.set_xticklabels(labels, rotation=45, ha="right")
+        ax.set_ylim(0, 1)
+        ax.set_ylabel("Accuracy")
+        ax.set_title(f"Joint probe summary @ epoch {epoch}")
+        fig.tight_layout()
+        wandb_run.log({f"probe/{metric_prefix or 'joint'}/summary": wandb.Image(fig)})
+        plt.close(fig)

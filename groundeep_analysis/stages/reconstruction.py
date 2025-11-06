@@ -2,29 +2,24 @@
 
 from pathlib import Path
 from typing import Dict, Any, List
-import sys
 import numpy as np
 import torch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.analyses.mse_viz import (
+from groundeep_analysis.internal.analyses.mse_viz import (
     compute_sample_mse,
     prepare_mse_dataframe,
     plot_mse_heatmap,
     plot_mse_vs_numerosity,
     save_regression_results as save_mse_regression,
 )
-from src.analyses.afp_viz import (
+from groundeep_analysis.internal.analyses.afp_viz import (
     compute_sample_afp,
     prepare_afp_dataframe,
     plot_afp_heatmap,
     plot_afp_vs_numerosity,
     save_afp_regression_results,
 )
-from src.analyses.ssim_viz import (
+from groundeep_analysis.internal.analyses.ssim_viz import (
     compute_sample_ssim,
     prepare_ssim_dataframe,
     plot_ssim_heatmap,
@@ -192,8 +187,11 @@ class ReconstructionStage:
             # SSIM
             if settings.get('ssim', {}).get('enabled', False):
                 if originals_2d.ndim >= 3:
-                    self._run_ssim(originals_2d, reconstructed_2d, labels, cumArea, CH,
-                                 density, layer_dir, li, ctx, n_bins)
+                    try:
+                        self._run_ssim(originals_2d, reconstructed_2d, labels, cumArea, CH,
+                                     density, layer_dir, li, ctx, n_bins)
+                    except ImportError as exc:
+                        print(f"[SSIM] Layer {li}: skipped ({exc})")
                 else:
                     print(f"[SSIM] Layer {li}: skipped (need 2D images)")
 

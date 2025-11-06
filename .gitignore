@@ -53,6 +53,8 @@ results/
 outputs/
 logs/
 wandb/
+examples/results/
+local_assets/
 
 # OS
 .DS_Store

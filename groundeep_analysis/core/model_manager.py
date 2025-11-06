@@ -349,25 +349,106 @@ class ModelManager:
         Returns:
             Model object or ModelWrapper
         """
-        # Setup device mapping for loading
         target_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        # Save original restore location
+        repo_root = Path(__file__).resolve().parents[2]
+        extra_sys_paths = [
+            repo_root,
+            repo_root / "local_assets",
+            repo_root / "local_assets" / "src",
+        ]
+        for extra in extra_sys_paths:
+            if extra.exists():
+                extra_str = str(extra)
+                if extra_str not in sys.path:
+                    sys.path.insert(0, extra_str)
+
+        if "tqdm" not in sys.modules:
+            import types
+            import importlib.machinery
+
+            tqdm_module = types.ModuleType("tqdm")
+
+            class _DummyTqdm:
+                def __init__(self, iterable=None, total=None, **kwargs):
+                    self.iterable = iterable
+                    self.total = total
+
+                def __iter__(self):
+                    if self.iterable is not None:
+                        return iter(self.iterable)
+                    if self.total is not None:
+                        return iter(range(self.total))
+                    return iter([])
+
+                def update(self, *args, **kwargs):
+                    pass
+
+                def close(self):
+                    pass
+
+            def _tqdm(iterable=None, *args, **kwargs):
+                return _DummyTqdm(iterable=iterable, **kwargs)
+
+            tqdm_module.tqdm = _tqdm
+            tqdm_module.trange = lambda *args, **kwargs: _DummyTqdm(iter(range(args[0] if args else 0)))
+            tqdm_module.__all__ = ["tqdm", "trange"]
+            tqdm_module.__spec__ = importlib.machinery.ModuleSpec("tqdm", loader=None)
+            tqdm_module.auto = tqdm_module
+
+            sys.modules["tqdm"] = tqdm_module
+
+        if "wandb" not in sys.modules:
+            import types
+
+            wandb_module = types.ModuleType("wandb")
+
+            class _DummyRun:
+                def log(self, *args, **kwargs):
+                    pass
+
+                def finish(self):
+                    pass
+
+            class _DummyImage:
+                def __init__(self, *args, **kwargs):
+                    self.args = args
+                    self.kwargs = kwargs
+
+            class _DummyTable:
+                def __init__(self, columns=None, data=None):
+                    self.columns = columns or []
+                    self.data = data or []
+
+                def add_data(self, *args, **kwargs):
+                    self.data.append(args if args else kwargs)
+
+            def _init(*args, **kwargs):
+                return _DummyRun()
+
+            wandb_module.init = _init
+            wandb_module.finish = lambda *args, **kwargs: None
+            wandb_module.log = lambda *args, **kwargs: None
+            wandb_module.Image = _DummyImage
+            wandb_module.Table = _DummyTable
+
+            sys.modules["wandb"] = wandb_module
+
         orig_restore = getattr(torch.serialization, "default_restore_location", None)
 
-        # Set custom restore location
-        if orig_restore is not None:
-            torch.serialization.default_restore_location = (
-                lambda storage, loc: storage.cuda()
-                if target_device.type == "cuda"
-                else storage.cpu()
-            )
+        def _restore_location(storage, location):
+            if target_device.type == "cuda" and isinstance(location, str) and location.startswith("cuda"):
+                return storage.cuda()
+            return storage.cpu()
+
+        torch.serialization.default_restore_location = _restore_location
 
         try:
+            model = torch.load(path, map_location=target_device)
+        except Exception:
             with open(path, "rb") as f:
                 model = pkl.load(f)
         finally:
-            # Restore original
             if orig_restore is not None:
                 torch.serialization.default_restore_location = orig_restore
 

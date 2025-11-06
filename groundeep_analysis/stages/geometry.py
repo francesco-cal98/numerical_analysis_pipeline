@@ -2,20 +2,20 @@
 
 from pathlib import Path
 from typing import Dict, Any, List, Tuple
-import sys
 import numpy as np
 import pandas as pd
 import torch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import spearmanr
-from statsmodels.stats.multitest import multipletests
 
-from src.analyses.monotonicity_viz import (
+try:
+    from statsmodels.stats.multitest import multipletests
+    HAS_STATSMODELS = True
+except ImportError:
+    HAS_STATSMODELS = False
+
+from groundeep_analysis.internal.analyses.monotonicity_viz import (
     compute_class_centroids,
     pairwise_centroid_distances,
     plot_distance_vs_deltaN,
@@ -256,10 +256,12 @@ class GeometryStage:
         df_rsa = pd.DataFrame(results)
 
         # FDR correction
-        if len(results) > 1:
+        if len(results) > 1 and HAS_STATSMODELS:
             _, pvals_corrected, _, _ = multipletests(df_rsa['p_value'], alpha=alpha, method='fdr_bh')
             df_rsa['p_value_corrected'] = pvals_corrected
             df_rsa['significant'] = pvals_corrected < alpha
+        elif len(results) > 1:
+            print("[Geometry] statsmodels not available, skipping FDR correction.")
 
         df_rsa.to_csv(rsa_dir / "rsa_results.csv", index=False)
 

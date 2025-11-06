@@ -7,18 +7,14 @@ Replaces the dataset-handling parts of Embedding_analysis with:
 - Separation of concerns
 """
 
-import sys
-from pathlib import Path
 from typing import Dict, Optional, Literal
 import numpy as np
 from torch.utils.data import DataLoader
 
-# Add project root to path
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.datasets.uniform_dataset import create_dataloaders_uniform, create_dataloaders_zipfian
+from groundeep_analysis.internal.datasets import (
+    create_dataloaders_uniform,
+    create_dataloaders_zipfian,
+)
 
 
 class DatasetManager:

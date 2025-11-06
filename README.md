@@ -71,58 +71,68 @@ layer_activations = adapter.encode_layerwise(x)
 
 ## 🚀 Quick Start
 
-### Installation
+> Need the full walkthrough? See [`docs/USAGE_GUIDE.md`](docs/USAGE_GUIDE.md).
+
+### 1. Install
 
 ```bash
-# Clone repository
 git clone https://github.com/francesco-cal98/groundeep-analysis.git
 cd groundeep-analysis
 
-# Install dependencies
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
 
-# Install package (editable mode for development)
+pip install -r requirements.txt
 pip install -e .
 ```
 
-### Basic Usage
+### 2. Bootstrap the demo assets (optional)
 
-```python
-from groundeep_analysis import AnalysisPipeline
-
-# Load configuration
-pipeline = AnalysisPipeline.from_yaml("config.yaml")
-
-# Run all enabled stages
-results = pipeline.run()
-
-# Or run specific stages
-results = pipeline.run(stages=["probes", "geometry", "dimensionality"])
+```bash
+python examples/bootstrap_assets.py
 ```
 
-### With Custom Models
+Creates `examples/assets/toy_dataset.npz` and two toy models so you can run the pipeline without private data.
+
+To reuse the **real** Groundeep datasets/models inside this repo:
+
+```bash
+python scripts/prepare_groundeep_assets.py \
+    --config ../Groundeep/src/configs/analysis.yaml \
+    --source ../Groundeep \
+    --dest   local_assets
+```
+
+Then run the full pipeline with `examples/configs/groundeep_analysis.yaml`.
+
+### 3. Run the pipeline (CLI)
+
+```bash
+python -m groundeep_analysis.cli.run_pipeline \
+    --config examples/configs/sample_analysis.yaml
+```
+
+Outputs arrive under `examples/results/`.
+
+### Programmatic usage
 
 ```python
-from groundeep_analysis.core import ModelManager, EmbeddingExtractor
-from groundeep_analysis.adapters import create_adapter
+from pathlib import Path
+import yaml
 
-# 1. Load your model
-mm = ModelManager()
-mm.load_model("path/to/model.pth", label="my_model")
+from groundeep_analysis.core.analysis_types import ModelSpec, AnalysisSettings
+from groundeep_analysis.pipeline import run_analysis_pipeline
 
-# 2. Get adapter (auto-detected)
-adapter = mm.get_adapter("my_model")
-print(f"Using {adapter.__class__.__name__}")
+cfg_path = Path("examples/configs/sample_analysis.yaml")
+cfg = yaml.safe_load(cfg_path.read_text())
+settings = AnalysisSettings.from_cfg(cfg)
 
-# 3. Extract embeddings
-extractor = EmbeddingExtractor(mm)
-embeddings = extractor.extract("my_model", dataloader)
-
-# 4. Run analysis
-from groundeep_analysis.stages import LinearProbesStage
-probe_stage = LinearProbesStage()
-results = probe_stage.run(context, settings, output_dir)
+for model_cfg in cfg["models"]:
+    spec = ModelSpec.from_config(model_cfg, cfg_path.parent)
+    run_analysis_pipeline(spec, settings, output_root=Path("results"))
 ```
+
+`ModelManager` and `EmbeddingExtractor` remain available for lower-level usage when integrating custom stages or adapters.
 
 ---
 
@@ -188,49 +198,56 @@ See [`examples/config_templates/`](examples/config_templates/) for complete exam
 
 ## �� Examples
 
-### Example 1: Analyze Pre-trained VAE
+### Example 1: Analyze a Pre-trained VAE
 
 ```python
-from groundeep_analysis import AnalysisPipeline
+from pathlib import Path
 import torch
 
-# Your VAE
-class VAE(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.encoder = ...
-        self.decoder = ...
+from groundeep_analysis.core.analysis_types import ModelSpec, AnalysisSettings
+from groundeep_analysis.pipeline import run_analysis_pipeline
 
-vae = VAE()
-vae.load_state_dict(torch.load("vae.pth"))
+# Save your model (torch.save keeps the adapter auto-detection happy)
+vae = torch.load("vae.pth")
+torch.save(vae, "vae_model.pkl")
 
-# Auto-detected as VAE, analyzed automatically
-pipeline = AnalysisPipeline(
-    model=vae,
-    dataset_path="data/",
-    config="config.yaml"
+spec = ModelSpec(
+    arch_name="vae_baseline",
+    distribution="uniform",
+    dataset_path=Path("data"),
+    dataset_name="stimuli.npz",
+    model_uniform=Path("vae_model.pkl"),
+    model_zipfian=Path("vae_model.pkl"),
+    val_size=0.1,
 )
-pipeline.run()
+
+settings = AnalysisSettings.from_cfg(
+    {
+        "probing": {"enabled": True, "layers": ["top"], "n_bins": 5, "steps": 500},
+        "rsa": {"enabled": False},
+        "rdm": {"enabled": False},
+    }
+)
+
+run_analysis_pipeline(spec, settings, output_root=Path("results"))
 ```
 
-### Example 2: Compare ResNet Layers
+### Example 2: Compare ResNet Layers Programmatically
 
 ```python
-from groundeep_analysis.adapters import PyTorchAdapter
 import torchvision.models as models
+from groundeep_analysis.adapters import PyTorchAdapter
 
-resnet = models.resnet50(pretrained=True)
+resnet = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
 
-# Extract from multiple layers
-adapter = PyTorchAdapter(resnet)
-layer_embeddings = adapter.encode_layerwise(
-    images,
-    layers=["layer1", "layer2", "layer3", "layer4"]
+# Extract activations from multiple blocks
+adapter = PyTorchAdapter(resnet, flatten_output=True)
+features = adapter.encode_layerwise(
+    images, layers=["layer1", "layer2", "layer3", "layer4"]
 )
 
-# Run geometry analysis on each layer
-for i, emb in enumerate(layer_embeddings):
-    analyze_geometry(emb, output_dir=f"results/layer{i+1}")
+for name, tensor in zip(["layer1", "layer2", "layer3", "layer4"], features):
+    print(name, tensor.shape)
 ```
 
 ### Example 3: Custom Behavioral Task

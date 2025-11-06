@@ -2,26 +2,31 @@
 
 from pathlib import Path
 from typing import Dict, Any, Optional
-import sys
 import torch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.analyses.behavioral_analysis import (
+from groundeep_analysis.internal.behavioral import (
     load_behavioral_inputs,
     run_behavioral_analysis,
+    run_task_comparison,
 )
-from src.analyses.task_comparison import run_task_comparison
-from src.analyses.task_fixed_reference import (
-    load_fixed_reference_inputs,
-    run_task_fixed_reference,
-)
-from src.analyses.task_numerosity_estimation import (
-    load_estimation_dataset,
-    run_task_numerosity_estimation,
-)
+
+try:
+    from groundeep_analysis.internal.behavioral.task_fixed_reference import (
+        load_fixed_reference_inputs,
+        run_task_fixed_reference,
+    )
+    HAS_FIXED_REFERENCE = True
+except ImportError:
+    HAS_FIXED_REFERENCE = False
+
+try:
+    from groundeep_analysis.internal.behavioral.task_numerosity_estimation import (
+        load_estimation_dataset,
+        run_task_numerosity_estimation,
+    )
+    HAS_ESTIMATION = True
+except ImportError:
+    HAS_ESTIMATION = False
 
 
 class BehavioralStage:
@@ -163,6 +168,9 @@ class BehavioralStage:
     def _run_fixed_reference_task(self, ctx, model, fixed_cfg, settings,
                                   behaviors_dir, behavior_label, device_behavior):
         """Run fixed reference task."""
+        if not HAS_FIXED_REFERENCE:
+            print("[Behavioral] Fixed reference task unavailable (optional module missing).")
+            return
         refs = fixed_cfg.get("references", [])
         train_template = fixed_cfg.get("train_template")
         test_template = fixed_cfg.get("test_template")
@@ -200,6 +208,9 @@ class BehavioralStage:
 
     def _run_estimation_task(self, ctx, estimation_cfg, behaviors_dir, behavior_label):
         """Run estimation task."""
+        if not HAS_ESTIMATION:
+            print("[Behavioral] Estimation task unavailable (optional module missing).")
+            return
         datasets_cfg = estimation_cfg.get("datasets", {})
         uniform_cfg = datasets_cfg.get("uniform", {})
         zipfian_cfg = datasets_cfg.get("zipfian", {})
