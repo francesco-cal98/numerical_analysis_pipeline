@@ -12,12 +12,12 @@ long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 setup(
     name="groundeep-analysis",
     version="0.1.0",
-    author="Your Name",
-    author_email="your.email@example.com",
+    author="Francesco Maria Calistroni",
+    author_email="fra.calistroni@gmail.com",
     description="Model-agnostic deep learning analysis framework with adapter system",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/groundeep-analysis",
+    url="https://github.com/francesco-cal98/groundeep-analysis",
     packages=find_packages(exclude=["tests", "docs", "examples"]),
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -96,8 +96,8 @@ setup(
         "adapter-pattern",
     ],
     project_urls={
-        "Bug Reports": "https://github.com/yourusername/groundeep-analysis/issues",
+        "Bug Reports": "https://github.com/francesco-cal98/groundeep-analysis/issues",
         "Documentation": "https://groundeep-analysis.readthedocs.io/",
-        "Source": "https://github.com/yourusername/groundeep-analysis",
+        "Source": "https://github.com/francesco-cal98/groundeep-analysis",
     },
 )

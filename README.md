@@ -75,7 +75,7 @@ layer_activations = adapter.encode_layerwise(x)
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/groundeep-analysis.git
+git clone https://github.com/francesco-cal98/groundeep-analysis.git
 cd groundeep-analysis
 
 # Install dependencies
@@ -330,10 +330,10 @@ If you use GROUNDEEP Analysis in your research, please cite:
 
 ```bibtex
 @software{groundeep_analysis2024,
-  author = {Your Name},
+  author = {Francesco Maria Calistroni},
   title = {GROUNDEEP Analysis: Model-Agnostic Deep Learning Analysis Framework},
   year = {2024},
-  url = {https://github.com/yourusername/groundeep-analysis}
+  url = {https://github.com/francesco-cal98/groundeep-analysis}
 }
 ```
 
@@ -376,9 +376,9 @@ MIT License - see [`LICENSE`](LICENSE) for details.
 
 ## 💬 Contact
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/groundeep-analysis/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/groundeep-analysis/discussions)
-- **Email**: your.email@example.com
+- **Issues**: [GitHub Issues](https://github.com/francesco-cal98/groundeep-analysis/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/francesco-cal98/groundeep-analysis/discussions)
+- **Email**: fra.calistroni@gmail.com
 
 ---
 

@@ -28,12 +28,12 @@ Main Components:
     - core.embedding_extractor: Feature extraction
     - stages: Analysis stages (probes, RSA, dimensionality, etc.)
 
-For detailed documentation, see: https://github.com/yourusername/groundeep-analysis
+For detailed documentation, see: https://github.com/francesco-cal98/groundeep-analysis
 """
 
 __version__ = "0.1.0"
-__author__ = "Your Name"
-__email__ = "your.email@example.com"
+__author__ = "Francesco Maria Calistroni"
+__email__ = "fra.calistroni@gmail.com"
 
 # Import main components for easy access
 from groundeep_analysis.core.adapters import (
