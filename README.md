@@ -232,25 +232,7 @@ settings = AnalysisSettings.from_cfg(
 run_analysis_pipeline(spec, settings, output_root=Path("results"))
 ```
 
-### Example 2: Compare ResNet Layers Programmatically
-
-```python
-import torchvision.models as models
-from groundeep_analysis.adapters import PyTorchAdapter
-
-resnet = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-
-# Extract activations from multiple blocks
-adapter = PyTorchAdapter(resnet, flatten_output=True)
-features = adapter.encode_layerwise(
-    images, layers=["layer1", "layer2", "layer3", "layer4"]
-)
-
-for name, tensor in zip(["layer1", "layer2", "layer3", "layer4"], features):
-    print(name, tensor.shape)
-```
-
-### Example 3: Custom Behavioral Task
+### Example 2: Custom Behavioral Task
 
 ```python
 from groundeep_analysis.stages import BaseStage
@@ -341,20 +323,6 @@ python tests/test_custom_model.py --model path/to/model.pth
 
 ---
 
-## 📖 Citation
-
-If you use GROUNDEEP Analysis in your research, please cite:
-
-```bibtex
-@software{groundeep_analysis2024,
-  author = {Francesco Maria Calistroni},
-  title = {GROUNDEEP Analysis: Model-Agnostic Deep Learning Analysis Framework},
-  year = {2024},
-  url = {https://github.com/francesco-cal98/groundeep-analysis}
-}
-```
-
----
 
 ## 🤝 Contributing
 
