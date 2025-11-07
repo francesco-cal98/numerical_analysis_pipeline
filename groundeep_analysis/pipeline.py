@@ -254,50 +254,47 @@ def _build_probe_features_modular(
     ctx: ModularPipelineContext,
 ) -> Tuple[Dict[str, np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]:
     """Collect features required by linear probes + correlation reports."""
-    subset = ctx.uniform_val_loader.dataset
-    idxs = getattr(subset, "indices", np.arange(len(subset)))
-    base = getattr(subset, "dataset", subset)
-
-    def _collect(attr: str) -> Optional[np.ndarray]:
-        values = getattr(base, attr, None)
-        if values is None:
-            return None
-        return np.asarray([values[i] for i in idxs])
+    bundle = ctx.bundle
 
     features_for_probes: Dict[str, np.ndarray] = {}
-    cum_area = _collect("cumArea_list")
-    convex_hull = _collect("CH_list")
-    density = _collect("density_list")
-    mean_size = _collect("mean_item_size_list")
+    cum_area = bundle.cum_area if bundle.cum_area is not None else np.array([])
+    convex_hull = bundle.convex_hull if bundle.convex_hull is not None else np.array([])
+    density = bundle.density if bundle.density is not None else None
+    mean_size = bundle.mean_item_size if bundle.mean_item_size is not None else None
+    labels = bundle.labels if bundle.labels is not None else np.array([])
 
-    if cum_area is not None:
+    if cum_area.size:
         features_for_probes["Cumulative Area"] = cum_area
-    if convex_hull is not None:
+    if convex_hull.size:
         features_for_probes["Convex Hull"] = convex_hull
-    if density is not None:
+    if density is not None and np.asarray(density).size:
         features_for_probes["Density"] = density
-    if mean_size is not None:
+    if mean_size is not None and np.asarray(mean_size).size:
         features_for_probes["Mean Item Size"] = mean_size
-    if ctx.bundle.labels is not None and ctx.bundle.labels.size:
-        features_for_probes["Labels"] = ctx.bundle.labels
+    if labels.size:
+        features_for_probes["Labels"] = labels
 
     feature_dir = ctx.output_dir / "feature_analysis"
     feature_dir.mkdir(parents=True, exist_ok=True)
 
     corr_features: Dict[str, np.ndarray] = {}
-    if ctx.bundle.labels.size:
-        corr_features["labels"] = ctx.bundle.labels.astype(float)
-    if ctx.bundle.cum_area.size:
-        corr_features["cumArea"] = ctx.bundle.cum_area.astype(float)
-    if ctx.bundle.convex_hull.size:
-        corr_features["CH"] = ctx.bundle.convex_hull.astype(float)
-    if density is not None and density.size:
-        corr_features["Density"] = density.astype(float)
-    if mean_size is not None and mean_size.size:
-        corr_features["mean_item_size"] = mean_size.astype(float)
+    if labels.size:
+        corr_features["labels"] = labels.astype(float)
+    if cum_area.size:
+        corr_features["cumArea"] = cum_area.astype(float)
+    if convex_hull.size:
+        corr_features["CH"] = convex_hull.astype(float)
+    if density is not None and np.asarray(density).size:
+        corr_features["Density"] = np.asarray(density).astype(float)
+    if mean_size is not None and np.asarray(mean_size).size:
+        corr_features["mean_item_size"] = np.asarray(mean_size).astype(float)
 
-    density_np: Optional[np.ndarray] = density.astype(float) if density is not None else None
-    mean_arr: Optional[np.ndarray] = mean_size.astype(float) if mean_size is not None else None
+    density_np: Optional[np.ndarray] = (
+        np.asarray(density).astype(float) if density is not None and np.asarray(density).size else None
+    )
+    mean_arr: Optional[np.ndarray] = (
+        np.asarray(mean_size).astype(float) if mean_size is not None and np.asarray(mean_size).size else None
+    )
 
     if corr_features:
         corr_df = pd.DataFrame(corr_features)
