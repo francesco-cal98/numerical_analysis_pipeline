@@ -3,6 +3,9 @@ output_root: ../results
 use_wandb: false
 layers: top
 
+numerosity_filter:
+  min: 5
+
 probing:
   enabled: true
   layers: [top]

@@ -94,6 +94,7 @@ class AnalysisSettings:
 
     # Global settings
     layers: Any = 'top'  # 'top' | 'all' | List[int]
+    numerosity_filter: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_cfg(cls, cfg: Dict[str, Any]) -> "AnalysisSettings":
@@ -138,4 +139,5 @@ class AnalysisSettings:
             cka=_to_dict("cka"),
             behavioral=_to_dict("behavioral"),
             layers=cfg.get("layers", "top"),
+            numerosity_filter=_to_dict("numerosity_filter"),
         )

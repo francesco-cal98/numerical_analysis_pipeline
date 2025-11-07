@@ -10,6 +10,10 @@ output_root: ../results/groundeep
 val_size: 0.05
 anchor: 0
 
+# Filter numerosity range
+numerosity_filter:
+  min: 5
+
 # Layer Configuration
 layers: top  # Options: 'top' | 'all' | [1, 2, 3]
 

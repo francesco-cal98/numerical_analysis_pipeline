@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 
 from groundeep_analysis.core.analysis_types import ModelSpec, AnalysisSettings
 from groundeep_analysis.core.analysis_helpers import (
@@ -26,6 +26,7 @@ from groundeep_analysis.core.analysis_helpers import (
     infer_chw_from_input,
     infer_hw_from_batch,
 )
+
 from groundeep_analysis.core import (
     DatasetManager,
     ModelManager,
@@ -76,6 +77,7 @@ def _prepare_pipeline_context(
     spec: ModelSpec,
     output_root: Path | str,
     seed: int,
+    settings: AnalysisSettings,
     *,
     wandb_run=None,
 ) -> ModularPipelineContext:
@@ -89,7 +91,7 @@ def _prepare_pipeline_context(
         dataset_name=spec.dataset_name,
         default_val_size=spec.val_size,
     )
-
+    # 
     uniform_val_loader = dataset_mgr.get_dataloader("uniform", split="val", full_batch=True)
     zipf_val_loader: Optional[DataLoader] = None
     try:
@@ -104,6 +106,29 @@ def _prepare_pipeline_context(
 
     inputs_uniform, labels_uniform = batch_uniform
     inputs_uniform = inputs_uniform.to(torch.float32)
+
+    filter_cfg = getattr(settings, "numerosity_filter", {}) or {}
+    mask_np: Optional[np.ndarray] = None
+    if filter_cfg:
+        labels_cpu = labels_uniform.detach().cpu().numpy()
+        mask_np = np.ones(labels_cpu.shape[0], dtype=bool)
+        if "min" in filter_cfg:
+            mask_np &= labels_cpu >= int(filter_cfg["min"])
+        if "max" in filter_cfg:
+            mask_np &= labels_cpu <= int(filter_cfg["max"])
+        if not mask_np.any():
+            raise ValueError(
+                f"Numerosity filter {filter_cfg} removed all samples "
+                "from the validation set."
+            )
+        mask_tensor = torch.from_numpy(mask_np).to(labels_uniform.device)
+        inputs_uniform = inputs_uniform[mask_tensor]
+        labels_uniform = labels_uniform[mask_tensor]
+        dataset = TensorDataset(inputs_uniform, labels_uniform)
+        uniform_val_loader = DataLoader(
+            dataset, batch_size=len(labels_uniform), shuffle=False
+        )
+
     base_batch = inputs_uniform.detach().cpu()
     labels_np = labels_uniform.detach().cpu().numpy()
 
@@ -119,6 +144,12 @@ def _prepare_pipeline_context(
     )
 
     features_uniform = dataset_mgr.get_features("uniform", split="val")
+    if mask_np is not None:
+        for key, values in list(features_uniform.items()):
+            try:
+                features_uniform[key] = np.asarray(values)[mask_np]
+            except Exception:
+                pass
 
     bundle = EmbeddingBundle(
         embeddings=Z_uniform if spec.distribution.lower() == "uniform" else Z_zipfian,
@@ -320,7 +351,13 @@ def run_analysis_pipeline(
 
     try:
         print("\n[1/11] Preparing model context...")
-        ctx = _prepare_pipeline_context(spec, output_root, seed, wandb_run=wandb_run)
+        ctx = _prepare_pipeline_context(
+            spec,
+            output_root,
+            seed,
+            settings=settings,
+            wandb_run=wandb_run,
+        )
 
         print("\n[2/11] Saving label histograms...")
         _save_label_histograms_modular(ctx)
