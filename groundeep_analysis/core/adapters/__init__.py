@@ -34,6 +34,8 @@ from .base import BaseAdapter
 from .dbn_adapter import DBNAdapter
 from .vae_adapter import VAEAdapter
 from .pytorch_adapter import PyTorchAdapter
+from .imdbn_adapter import iMDBNAdapter
+from .bimodal_dbn_adapter import BimodalDBNAdapter
 
 import torch
 from typing import Optional, Any, Type
@@ -44,6 +46,8 @@ __all__ = [
     "DBNAdapter",
     "VAEAdapter",
     "PyTorchAdapter",
+    "iMDBNAdapter",
+    "BimodalDBNAdapter",
     "create_adapter",
 ]
 
@@ -104,6 +108,12 @@ def create_adapter(
     elif adapter_type == "dbn":
         return DBNAdapter(model, **kwargs)
 
+    elif adapter_type == "imdbn":
+        return iMDBNAdapter(model, **kwargs)
+
+    elif adapter_type == "bimodal_dbn":
+        return BimodalDBNAdapter(model, **kwargs)
+
     elif adapter_type == "vae":
         return VAEAdapter(model, **kwargs)
 
@@ -117,7 +127,7 @@ def create_adapter(
     else:
         raise ValueError(
             f"Unknown adapter_type: {adapter_type}. "
-            f"Valid options: 'auto', 'dbn', 'vae', 'pytorch', or BaseAdapter subclass."
+            f"Valid options: 'auto', 'dbn', 'imdbn', 'bimodal_dbn', 'vae', 'pytorch', or BaseAdapter subclass."
         )
 
 
@@ -126,11 +136,12 @@ def _auto_detect_adapter(model: Any, **kwargs) -> BaseAdapter:
     Auto-detect model type and return appropriate adapter.
 
     Detection heuristics (in order):
-    1. Check for .layers attribute (DBN/RBM)
-    2. Check for dict with "layers" key (serialized DBN)
-    3. Check for .encoder and .decoder (VAE)
-    4. Check if torch.nn.Module (generic PyTorch)
-    5. Raise error if none match
+    1. Check for iMDBN (dict with "image_idbn" and "joint_rbm")
+    2. Check for .layers attribute (DBN/RBM)
+    3. Check for dict with "layers" key (serialized DBN)
+    4. Check for .encoder and .decoder (VAE)
+    5. Check if torch.nn.Module (generic PyTorch)
+    6. Raise error if none match
 
     Args:
         model: Model object
@@ -142,7 +153,22 @@ def _auto_detect_adapter(model: Any, **kwargs) -> BaseAdapter:
     Raises:
         ValueError: If model type cannot be detected
     """
-    # 1. Check for DBN/RBM with .layers attribute
+    # 1. Check for BimodalDBN (mod1_dbn + mod2_dbn + joint_rbm)
+    if isinstance(model, dict):
+        if "mod1_dbn" in model and "mod2_dbn" in model and "joint_rbm" in model:
+            print("[Adapter] Auto-detected BimodalDBN model")
+            return BimodalDBNAdapter(model, **kwargs)
+        elif "image_idbn" in model and "joint_rbm" in model:
+            print("[Adapter] Auto-detected iMDBN (multimodal) model")
+            return iMDBNAdapter(model, **kwargs)
+    elif hasattr(model, "mod1_dbn") and hasattr(model, "mod2_dbn"):
+        print("[Adapter] Auto-detected BimodalDBN model")
+        return BimodalDBNAdapter(model, **kwargs)
+    elif hasattr(model, "image_idbn") and hasattr(model, "joint_rbm"):
+        print("[Adapter] Auto-detected iMDBN (multimodal) model")
+        return iMDBNAdapter(model, **kwargs)
+
+    # 2. Check for DBN/RBM with .layers attribute
     if hasattr(model, "layers"):
         layers = getattr(model, "layers", [])
         if layers:
@@ -152,28 +178,28 @@ def _auto_detect_adapter(model: Any, **kwargs) -> BaseAdapter:
                 print(f"[Adapter] Auto-detected DBN/RBM model with {len(layers)} layers")
                 return DBNAdapter(model, **kwargs)
 
-    # 2. Check for dict-based DBN (serialized format)
+    # 3. Check for dict-based DBN (serialized format)
     if isinstance(model, dict) and "layers" in model:
         layers = model["layers"]
         if layers and hasattr(layers[0], "forward"):
             print(f"[Adapter] Auto-detected serialized DBN with {len(layers)} layers")
             return DBNAdapter(model, **kwargs)
 
-    # 3. Check for VAE (encoder + decoder)
+    # 4. Check for VAE (encoder + decoder)
     if hasattr(model, "encoder") and hasattr(model, "decoder"):
         print("[Adapter] Auto-detected VAE model")
         return VAEAdapter(model, **kwargs)
 
-    # 4. Check for generic PyTorch model
+    # 5. Check for generic PyTorch model
     if isinstance(model, torch.nn.Module):
         model_name = type(model).__name__
         print(f"[Adapter] Auto-detected PyTorch model ({model_name}), using generic adapter")
         return PyTorchAdapter(model, **kwargs)
 
-    # 5. Could not detect
+    # 6. Could not detect
     raise ValueError(
         f"Could not auto-detect adapter for model type {type(model).__name__}. "
-        f"Please specify adapter_type explicitly: 'dbn', 'vae', or 'pytorch'.\n"
+        f"Please specify adapter_type explicitly: 'dbn', 'imdbn', 'vae', or 'pytorch'.\n"
         f"Or create a custom adapter by subclassing BaseAdapter."
     )
 
@@ -195,6 +221,8 @@ def list_available_adapters() -> dict:
     """
     return {
         "dbn": DBNAdapter,
+        "imdbn": iMDBNAdapter,
+        "bimodal_dbn": BimodalDBNAdapter,
         "vae": VAEAdapter,
         "pytorch": PyTorchAdapter,
     }

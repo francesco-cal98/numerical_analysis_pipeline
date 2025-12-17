@@ -11,10 +11,8 @@ from typing import Dict, Optional, Literal
 import numpy as np
 from torch.utils.data import DataLoader
 
-from groundeep_analysis.internal.datasets import (
-    create_dataloaders_uniform,
-    create_dataloaders_zipfian,
-)
+from groundeep_analysis.core.external_models.datasets.uniform_dataset import create_dataloaders_uniform
+from groundeep_analysis.core.external_models.datasets.zipfian_dataset import create_dataloaders_zipfian
 
 
 class DatasetManager:

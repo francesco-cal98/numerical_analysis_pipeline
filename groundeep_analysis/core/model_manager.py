@@ -9,6 +9,7 @@ Replaces the model-handling parts of Embedding_analysis with:
 """
 
 import sys
+import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 import pickle as pkl
@@ -352,16 +353,64 @@ class ModelManager:
         target_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         repo_root = Path(__file__).resolve().parents[2]
+
+        # Add bundled external models directory (contains Groundeep classes)
+        external_models_dir = repo_root / "groundeep_analysis" / "core" / "external_models"
+
         extra_sys_paths = [
             repo_root,
             repo_root / "local_assets",
             repo_root / "local_assets" / "src",
+            external_models_dir,  # Bundled external model classes
         ]
+
+        # Optional: Add external Groundeep path if GROUNDEEP_PATH env var is set
+        groundeep_env = os.environ.get("GROUNDEEP_PATH")
+        if groundeep_env:
+            groundeep_src = Path(groundeep_env) / "src"
+            if groundeep_src.exists():
+                extra_sys_paths.append(groundeep_src)
+
         for extra in extra_sys_paths:
             if extra.exists():
                 extra_str = str(extra)
                 if extra_str not in sys.path:
                     sys.path.insert(0, extra_str)
+
+        # Import gdbn_model and create imdbn alias for pickle compatibility
+        try:
+            import types
+            import classes.gdbn_model as gdbn_model
+
+            # Create proper package structure for imdbn
+            imdbn = types.ModuleType("imdbn")
+            imdbn.__package__ = "imdbn"
+            imdbn.__path__ = []
+
+            imdbn_models = types.ModuleType("imdbn.models")
+            imdbn_models.__package__ = "imdbn.models"
+            imdbn_models.__path__ = []
+
+            imdbn_datasets = types.ModuleType("imdbn.datasets")
+            imdbn_datasets.__package__ = "imdbn.datasets"
+            imdbn_datasets.__path__ = []
+
+            # Map actual modules to imdbn aliases
+            sys.modules["imdbn"] = imdbn
+            sys.modules["imdbn.models"] = imdbn_models
+            sys.modules["imdbn.models.gdbn_model_complete"] = gdbn_model
+            sys.modules["imdbn.datasets"] = imdbn_datasets
+
+            # Also try to import datasets if available
+            try:
+                import datasets.uniform_dataset as uniform_dataset
+                import datasets.zipfian_dataset as zipfian_dataset
+                sys.modules["imdbn.datasets.uniform_dataset"] = uniform_dataset
+                sys.modules["imdbn.datasets.zipfian_dataset"] = zipfian_dataset
+            except ImportError:
+                pass
+        except ImportError:
+            pass  # If import fails, torch.load might still work
 
         if "tqdm" not in sys.modules:
             import types
@@ -444,7 +493,7 @@ class ModelManager:
         torch.serialization.default_restore_location = _restore_location
 
         try:
-            model = torch.load(path, map_location=target_device)
+            model = torch.load(path, map_location=target_device, weights_only=False)
         except Exception:
             with open(path, "rb") as f:
                 model = pkl.load(f)
@@ -452,9 +501,18 @@ class ModelManager:
             if orig_restore is not None:
                 torch.serialization.default_restore_location = orig_restore
 
-        # Wrap dict-based models
-        if isinstance(model, dict) and "layers" in model:
-            return ModelWrapper(model)
+        # Don't wrap dict-based models that are iMDBN or BimodalDBN
+        # (they need to stay as dicts for the adapters)
+        if isinstance(model, dict):
+            if "image_idbn" in model and "joint_rbm" in model:
+                # This is an iMDBN - return as-is for iMDBNAdapter
+                return model
+            elif "mod1_dbn" in model and "mod2_dbn" in model:
+                # This is a BimodalDBN - return as-is for BimodalDBNAdapter
+                return model
+            elif "layers" in model:
+                # Regular DBN - wrap it
+                return ModelWrapper(model)
 
         return model
 

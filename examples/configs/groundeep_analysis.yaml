@@ -12,7 +12,7 @@ anchor: 0
 
 # Filter numerosity range
 numerosity_filter:
-  min: 5
+  min: 1
 
 # Layer Configuration
 layers: top  # Options: 'top' | 'all' | [1, 2, 3]
@@ -44,7 +44,7 @@ monotonicity:
   enabled: true
 
 partial_rsa:
-  enabled: true
+  enabled: false
 
 mse:
   enabled: true
@@ -75,7 +75,7 @@ tsne:
   random_state: 42
 
 umap:
-  enabled: true
+  enabled: false
   n_neighbors: 15
   min_dist: 0.1
   max_samples: 5000
@@ -85,16 +85,16 @@ reductions:
   pca:   {enabled: true}
   tsne:  {enabled: false}
   mds:   {enabled: false}
-  umap:  {enabled: true}
+  umap:  {enabled: false}
 
 traversal:
-  enabled: true
+  enabled: false
   pcs: [0, 1]
   steps: 7
   delta: 2.0
 
 cka:
-  enabled: false
+  enabled: true
   kernels: [linear]
   n_max: 1024
   report:
@@ -104,36 +104,54 @@ cka:
   permutation:
     enabled: false
     n_perm: 200
-
 behavioral:
-  enabled: false
-  train_pickle: local_assets/behavioral_datasets/binary_de_wind_train.pkl
-  test_pickle: local_assets/behavioral_datasets/binary_de_wind_test.pkl
-  mat_file: local_assets/circle_dataset_100x100/NumStim_7to28_100x100_TE.mat
+  enabled: true
+  train_pickle: /home/student/Desktop/Groundeep/behavioral_datasets/binary_de_wind_train.pkl
+  test_pickle: /home/student/Desktop/Groundeep/behavioral_datasets/binary_de_wind_test.pkl
+  mat_file: /home/student/Desktop/Groundeep/circle_dataset_100x100/NumStim_7to28_100x100_TE.mat
   guess_rate: 0.01
   tasks:
     comparison:
-      enabled: true
+      enabled: false
       guess_rate: 0.01
-      train_pickle: local_assets/behavioral_datasets/binary_de_wind_train.pkl
-      test_pickle: local_assets/behavioral_datasets/binary_de_wind_test.pkl
-      mat_file: local_assets/circle_dataset_100x100/NumStim_7to28_100x100_TE.mat
+      train_pickle: /home/student/Desktop/Groundeep/behavioral_datasets/binary_de_wind_train.pkl
+      test_pickle: /home/student/Desktop/Groundeep/behavioral_datasets/binary_de_wind_test.pkl
+      mat_file: /home/student/Desktop/Groundeep/circle_dataset_100x100/NumStim_7to28_100x100_TE.mat
     fixed_reference:
       enabled: true
       references: [8, 14, 16, 20]
-      train_template: local_assets/behavioral_datasets/fixed_ref_REF_{ref}_train.pkl
-      test_template: local_assets/behavioral_datasets/fixed_ref_REF_{ref}_test.pkl
-      mat_file: local_assets/circle_dataset_100x100/NumStim_1to32_100x100_TE.mat
+      mat_file: /home/student/Desktop/Groundeep/circle_dataset_100x100/NumStim_1to32_100x100_TE.mat
       guess_rate: 0.01
+      build_from_mat:
+        train_mat: /home/student/Desktop/Groundeep/circle_dataset_100x100/NumStim_1to32_100x100_TR.mat
+        test_mat: /home/student/Desktop/Groundeep/circle_dataset_100x100/NumStim_1to32_100x100_TE.mat
+        num_samples: 15200
+        batch_size: 100
+        binarize: true
+        seed: 13
+        ratio_buckets:
+          limits: [0.49, 1.0, 2.0, 4.0]
+          percentages: [0.0, 50.0, 50.0, 0.0]
+      comparison_runner:
+        enabled: false
+        train_mat: /home/student/Desktop/Groundeep/circle_dataset_100x100/NumStim_1to32_100x100_TR.mat
+        test_mat: /home/student/Desktop/Groundeep/circle_dataset_100x100/NumStim_1to32_100x100_TE.mat
+        dbn_path: /path/to/single/dbn_model.pkl
+        limits: [0.49, 2.0, 4.0]
+        percentages: [0.0, 100.0, 0.0]
+        num_samples: 15200
+        batch_size: 100
+        binarize: true
+        runs: 1
     estimation:
       enabled: true
       datasets:
         uniform:
-          train_pickle: local_assets/behavioral_datasets/naming_train.pkl
-          test_pickle: local_assets/behavioral_datasets/naming_test.pkl
+          train_pickle: /home/student/Desktop/Groundeep/behavioral_datasets/naming_train.pkl
+          test_pickle: /home/student/Desktop/Groundeep/behavioral_datasets/naming_test.pkl
         zipfian:
-          train_pickle: local_assets/behavioral_datasets/naming_train.pkl
-          test_pickle: local_assets/behavioral_datasets/naming_test.pkl
+          train_pickle: /home/student/Desktop/Groundeep/behavioral_datasets/naming_train.pkl
+          test_pickle: /home/student/Desktop/Groundeep/behavioral_datasets/naming_test.pkl
       classifiers: [SGD_regression]
       label_mode: int
       scale_targets: false
@@ -144,18 +162,22 @@ behavioral:
 # =============================================================================
 
 models:
-  - arch: iDBN_1500_500
+  - arch: iDBN_1500_1500
     distribution: uniform
     dataset_path: ../../local_assets/stimuli_dataset_10_10
     dataset_name: stimuli_dataset.npz
-    model_uniform: /home/student/Desktop/Groundeep/networks/uniform/dataset_10_10/uniform_i_/dbn_trained_uniform_1500_1500.pkl
+    model_uniform: /home/student/Desktop/Groundeep/networks/uniform/imdbn/imdbn_trained_uniform.pkl
     model_zipfian: /home/student/Desktop/Groundeep/networks/zipfian/dataset_10_10/zipfian_i_/dbn_trained_zipfian_1500_1500.pkl
+    adapter_type_uniform: imdbn  # Specify iMDBN adapter for uniform model
+    adapter_type_zipfian: dbn    # Standard DBN adapter for zipfian model
     val_size: 0.10
 
-  - arch: iDBN_1500_500
+  - arch: iDBN_1500_1500
     distribution: zipfian
     dataset_path: ../../local_assets/stimuli_dataset_10_10
     dataset_name: stimuli_dataset.npz
-    model_uniform: /home/student/Desktop/Groundeep/networks/uniform/dataset_10_10/uniform_i_/dbn_trained_uniform_1500_1500.pkl
+    model_uniform: /home/student/Desktop/Groundeep/networks/uniform/imdbn/imdbn_trained_uniform.pkl
     model_zipfian: /home/student/Desktop/Groundeep/networks/zipfian/dataset_10_10/zipfian_i_/dbn_trained_zipfian_1500_1500.pkl
+    adapter_type_uniform: imdbn  # Specify iMDBN adapter for uniform model
+    adapter_type_zipfian: dbn    # Standard DBN adapter for zipfian model
     val_size: 0.10

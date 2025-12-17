@@ -21,6 +21,8 @@ class ModelSpec:
         model_uniform: Path to uniform-trained model
         model_zipfian: Path to zipfian-trained model
         val_size: Validation split size
+        adapter_type_uniform: Adapter type for uniform model (auto/dbn/imdbn/vae/pytorch)
+        adapter_type_zipfian: Adapter type for zipfian model (auto/dbn/imdbn/vae/pytorch)
     """
 
     arch_name: str
@@ -30,6 +32,8 @@ class ModelSpec:
     model_uniform: Path
     model_zipfian: Path
     val_size: float = 0.05
+    adapter_type_uniform: str = "auto"
+    adapter_type_zipfian: str = "auto"
 
     @classmethod
     def from_config(cls, raw_cfg: Dict[str, Any], project_root: Path) -> "ModelSpec":
@@ -57,6 +61,8 @@ class ModelSpec:
             model_uniform=_abs(raw_cfg["model_uniform"]),
             model_zipfian=_abs(raw_cfg["model_zipfian"]),
             val_size=float(raw_cfg.get("val_size", 0.05)),
+            adapter_type_uniform=str(raw_cfg.get("adapter_type_uniform", "auto")),
+            adapter_type_zipfian=str(raw_cfg.get("adapter_type_zipfian", "auto")),
         )
 
 

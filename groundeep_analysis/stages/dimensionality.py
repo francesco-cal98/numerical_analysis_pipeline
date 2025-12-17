@@ -6,8 +6,8 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-from groundeep_analysis.internal.analyses.pca_geometry import run_pca_geometry
-from groundeep_analysis.internal.analyses.pca_report import generate_pca_decomposition_report
+from groundeep_analysis.stages.pca.geometry import run_pca_geometry
+from groundeep_analysis.stages.pca.report import generate_pca_decomposition_report
 
 
 class DimensionalityStage:

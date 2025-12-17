@@ -48,6 +48,9 @@ groundeep/
 *.h5
 *.hdf5
 
+# Exception: Keep bundled external model classes (needed for pickle loading)
+!groundeep_analysis/core/external_models/**/*.py
+
 # Results and outputs
 results/
 outputs/

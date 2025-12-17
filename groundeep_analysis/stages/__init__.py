@@ -17,10 +17,10 @@ from groundeep_analysis.stages.probes import LinearProbesStage
 from groundeep_analysis.stages.geometry import GeometryStage
 from groundeep_analysis.stages.dimensionality import DimensionalityStage
 from groundeep_analysis.stages.reconstruction import ReconstructionStage
-from groundeep_analysis.stages.cka import CKAStage
+from groundeep_analysis.stages.cka_analysis import CKAStage
 from groundeep_analysis.stages.behavioral import BehavioralStage
-from groundeep_analysis.stages.powerlaw import PowerLawStage
-from groundeep_analysis.stages.pca_diagnostics import PCADiagnosticsStage
+from groundeep_analysis.stages.powerlaw_impl import PowerLawStage
+from groundeep_analysis.stages.pca import PCADiagnosticsStage
 
 __all__ = [
     'BaseStage',

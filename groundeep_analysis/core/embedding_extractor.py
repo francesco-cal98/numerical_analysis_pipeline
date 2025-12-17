@@ -99,20 +99,33 @@ class EmbeddingExtractor:
                 if verbose and (i % 10 == 0):
                     print(f"  Batch {i+1}/{n_batches}")
 
-                # Get input (handle both (x,) and (x, y) formats)
-                if isinstance(batch, (list, tuple)):
-                    x = batch[0]
+                # Handle different batch formats
+                # Multimodal adapters (iMDBN, BimodalDBN) need (images, labels)
+                # Unimodal adapters (DBN, VAE) need only images
+                if isinstance(batch, (list, tuple)) and len(batch) >= 2:
+                    # Check if adapter expects multimodal input
+                    adapter_class_name = adapter.__class__.__name__
+                    if adapter_class_name in ["iMDBNAdapter", "BimodalDBNAdapter"]:
+                        # Pass full tuple for multimodal models
+                        batch_input = batch
+                    else:
+                        # Pass only images for unimodal models
+                        batch_input = batch[0]
+                elif isinstance(batch, (list, tuple)):
+                    # Dataloader returns (images,) - extract just images
+                    batch_input = batch[0]
                 else:
-                    x = batch
+                    # Dataloader returns images directly
+                    batch_input = batch
 
                 # Extract embeddings using adapter
                 if layer is None:
-                    # Top layer
-                    emb = adapter.encode(x)
+                    # Top layer (for iMDBN, this is the joint layer)
+                    emb = adapter.encode(batch_input)
                 else:
                     # Specific layer
-                    layer_embs = adapter.encode_layerwise(x, layers=[layer])
-                    emb = layer_embs[0] if layer_embs else adapter.encode(x)
+                    layer_embs = adapter.encode_layerwise(batch_input, layers=[layer])
+                    emb = layer_embs[0] if layer_embs else adapter.encode(batch_input)
 
                 embeddings.append(emb.detach().cpu().numpy())
 
@@ -186,6 +199,73 @@ class EmbeddingExtractor:
         Returns:
             Tuple of (embeddings_a, embeddings_b) as numpy arrays
         """
+        # Use adapters if enabled
+        if self.use_adapters:
+            try:
+                adapter_a = self.model_manager.get_adapter(model_label_a)
+                adapter_b = self.model_manager.get_adapter(model_label_b)
+
+                embeddings_a = []
+                embeddings_b = []
+                n_batches = len(dataloader)
+
+                with torch.no_grad():
+                    for i, batch in enumerate(dataloader):
+                        if verbose and i % 10 == 0:
+                            print(f"[EmbeddingExtractor] Processing batch {i+1}/{n_batches}")
+
+                        # Handle different batch formats
+                        # Check if adapters expect multimodal input
+                        if isinstance(batch, (list, tuple)) and len(batch) >= 2:
+                            adapter_a_name = adapter_a.__class__.__name__
+                            adapter_b_name = adapter_b.__class__.__name__
+
+                            # If either adapter is multimodal, we need to handle them differently
+                            if adapter_a_name in ["iMDBNAdapter", "BimodalDBNAdapter"]:
+                                batch_input_a = batch  # Full tuple
+                            else:
+                                batch_input_a = batch[0]  # Only images
+
+                            if adapter_b_name in ["iMDBNAdapter", "BimodalDBNAdapter"]:
+                                batch_input_b = batch  # Full tuple
+                            else:
+                                batch_input_b = batch[0]  # Only images
+                        elif isinstance(batch, (list, tuple)):
+                            batch_input_a = batch[0]
+                            batch_input_b = batch[0]
+                        else:
+                            batch_input_a = batch
+                            batch_input_b = batch
+
+                        # Extract from both models with same input
+                        if layer is None:
+                            emb_a = adapter_a.encode(batch_input_a)
+                            emb_b = adapter_b.encode(batch_input_b)
+                        else:
+                            layer_embs_a = adapter_a.encode_layerwise(batch_input_a, layers=[layer])
+                            layer_embs_b = adapter_b.encode_layerwise(batch_input_b, layers=[layer])
+                            emb_a = layer_embs_a[0] if layer_embs_a else adapter_a.encode(batch_input_a)
+                            emb_b = layer_embs_b[0] if layer_embs_b else adapter_b.encode(batch_input_b)
+
+                        embeddings_a.append(emb_a.detach().cpu().numpy())
+                        embeddings_b.append(emb_b.detach().cpu().numpy())
+
+                result_a = np.concatenate(embeddings_a, axis=0)
+                result_b = np.concatenate(embeddings_b, axis=0)
+
+                if verbose:
+                    print(f"[EmbeddingExtractor] Extracted aligned pair:")
+                    print(f"  {model_label_a}: {result_a.shape}")
+                    print(f"  {model_label_b}: {result_b.shape}")
+
+                return result_a, result_b
+
+            except Exception as e:
+                if verbose:
+                    print(f"[EmbeddingExtractor] Adapter extraction failed: {e}")
+                    print("[EmbeddingExtractor] Falling back to legacy extraction")
+
+        # Fallback to legacy method
         model_a = self.model_manager.get_model(model_label_a)
         model_b = self.model_manager.get_model(model_label_b)
         device_a = self.model_manager.get_device(model_label_a)

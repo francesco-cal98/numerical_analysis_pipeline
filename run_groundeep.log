@@ -38,3 +38,191 @@
   interp = interp.fillna(method="ffill").fillna(method="bfill")
 /home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:173: FutureWarning: DataFrame.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
   interp = interp.fillna(method="ffill", axis=1).fillna(method="bfill", axis=1)
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:165: UserWarning: [recon] Missing 8 combinations for (numerosity, convex_hull_bin); applying interpolation. Sample: (1,1), (1,2), (1,3), (1,4), (2,1), (2,2), (2,3), (2,4)
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:172: FutureWarning: DataFrame.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  interp = interp.fillna(method="ffill").fillna(method="bfill")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:173: FutureWarning: DataFrame.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  interp = interp.fillna(method="ffill", axis=1).fillna(method="bfill", axis=1)
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:217: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  grouped_all = grouped_all.fillna(method="ffill").fillna(method="bfill")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[187, 562)': [23, 24, 25, 26, 27, 28, 29, 30, 31, 32]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:236: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  series = series.fillna(method="ffill").fillna(method="bfill")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[562, 700)': [1, 29, 30, 31, 32]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[700, 800)': [1]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[800, 919)': [1]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[919, 1.3e+03]': [1, 3]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:260: UserWarning: [recon] statsmodels not available; skipping regression summaries.
+  warnings.warn("[recon] statsmodels not available; skipping regression summaries.")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/stages/probes.py:90: UserWarning: set_ticklabels() should only be used with a fixed number of ticks, i.e. after set_ticks() or using a FixedLocator.
+  ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:165: UserWarning: [recon] Missing 19 combinations for (numerosity, cumarea_bin); applying interpolation. Sample: (1,1), (1,2), (1,3), (1,4), (3,4), (23,0), (24,0), (25,0)…
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:172: FutureWarning: DataFrame.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  interp = interp.fillna(method="ffill").fillna(method="bfill")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:173: FutureWarning: DataFrame.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  interp = interp.fillna(method="ffill", axis=1).fillna(method="bfill", axis=1)
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:165: UserWarning: [recon] Missing 8 combinations for (numerosity, convex_hull_bin); applying interpolation. Sample: (1,1), (1,2), (1,3), (1,4), (2,1), (2,2), (2,3), (2,4)
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:172: FutureWarning: DataFrame.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  interp = interp.fillna(method="ffill").fillna(method="bfill")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:173: FutureWarning: DataFrame.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  interp = interp.fillna(method="ffill", axis=1).fillna(method="bfill", axis=1)
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:217: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  grouped_all = grouped_all.fillna(method="ffill").fillna(method="bfill")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[187, 562)': [23, 24, 25, 26, 27, 28, 29, 30, 31, 32]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:236: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  series = series.fillna(method="ffill").fillna(method="bfill")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[562, 700)': [1, 29, 30, 31, 32]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[700, 800)': [1]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[800, 919)': [1]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[919, 1.3e+03]': [1, 3]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:260: UserWarning: [recon] statsmodels not available; skipping regression summaries.
+  warnings.warn("[recon] statsmodels not available; skipping regression summaries.")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:165: UserWarning: [recon] Missing 19 combinations for (numerosity, cumarea_bin); applying interpolation. Sample: (1,1), (1,2), (1,3), (1,4), (3,4), (23,0), (24,0), (25,0)…
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:172: FutureWarning: DataFrame.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  interp = interp.fillna(method="ffill").fillna(method="bfill")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:173: FutureWarning: DataFrame.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  interp = interp.fillna(method="ffill", axis=1).fillna(method="bfill", axis=1)
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:165: UserWarning: [recon] Missing 8 combinations for (numerosity, convex_hull_bin); applying interpolation. Sample: (1,1), (1,2), (1,3), (1,4), (2,1), (2,2), (2,3), (2,4)
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:172: FutureWarning: DataFrame.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  interp = interp.fillna(method="ffill").fillna(method="bfill")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:173: FutureWarning: DataFrame.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  interp = interp.fillna(method="ffill", axis=1).fillna(method="bfill", axis=1)
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:217: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  grouped_all = grouped_all.fillna(method="ffill").fillna(method="bfill")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[187, 562)': [23, 24, 25, 26, 27, 28, 29, 30, 31, 32]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:236: FutureWarning: Series.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+  series = series.fillna(method="ffill").fillna(method="bfill")
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[562, 700)': [1, 29, 30, 31, 32]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[700, 800)': [1]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[800, 919)': [1]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:231: UserWarning: [recon] Missing numerosity values for Cumulative Area bin '[919, 1.3e+03]': [1, 3]. Interpolating to keep lines continuous.
+  warnings.warn(
+/home/student/Desktop/groundeep-analysis/groundeep_analysis/internal/analyses/recon_metric_utils.py:260: UserWarning: [recon] statsmodels not available; skipping regression summaries.
+  warnings.warn("[recon] statsmodels not available; skipping regression summaries.")
+
+======================================================================
+🔄 Analyzing: iDBN_1500_500 | Distribution: uniform
+======================================================================
+
+[1/11] Preparing model context...
+[ModelManager] Loading model: uniform from /home/student/Desktop/groundeep-analysis/local_assets/networks/uniform/dataset_10_10/uniform_i_/dbn_trained_uniform_1500_500.pkl
+[Adapter] Auto-detected DBN/RBM model with 2 layers
+[ModelManager] Loaded uniform on cpu (DBNAdapter)
+[ModelManager] Loading model: zipfian from /home/student/Desktop/groundeep-analysis/local_assets/networks/zipfian/dataset_10_10/zipfian_i_/dbn_trained_zipfian_1500_500.pkl
+[Adapter] Auto-detected DBN/RBM model with 2 layers
+[ModelManager] Loaded zipfian on cpu (DBNAdapter)
+
+[2/11] Saving label histograms...
+
+[3/11] Building probe features...
+
+[4/11] Running Power-Law Scaling Stage...
+[PowerFit] iDBN_1500_500/uniform: b=0.527, R²=0.642
+
+[5/11] Running Linear Probes Stage...
+
+[6/11] Running Geometry Stage (RSA, RDM, Monotonicity, Partial RSA)...
+[Geometry] Analyzing layers: [2]
+[Monotonicity] Layer 2: R²=N/A
+[Geometry] statsmodels not available, skipping FDR correction.
+[RSA] Layer 2: labels=0.231, cumArea=0.129, CH=0.097
+[RDM] Layer 2: Saved 2 RDM matrices
+[Partial RSA] Layer 2: partial_rho=0.136
+
+[7/11] Running Reconstruction Stage (MSE, AFP, SSIM)...
+[Reconstruction] Analyzing layers: [2]
+[MSE] Layer 2: mean=0.03630
+[AFP] Layer 2: mean=0.58360
+[SSIM] Layer 2: skipped (scikit-image is required for SSIM computations.)
+
+[8/11] Running Dimensionality Stage (PCA, TSNE, UMAP)...
+[Dimensionality] Analyzing layers: [2]
+[PCA Geometry] Layer 2: anisotropy_within=0.502, anisotropy_between=0.914
+[PCA Report] Layer 2: rho_pc1=0.000, evr_pc1=0.000
+[UMAP] Layer 2: skipped (umap-learn not installed)
+
+[9/11] Running CKA Stage...
+
+[10/11] Running Behavioral Suite Stage...
+
+[11/11] Running PCA Diagnostics Stage (legacy)...
+⚠️  PCADiagnosticsStage is a legacy stub and is not implemented.
+   Use DimensionalityStage with pca_geometry and pca_report instead.
+
+======================================================================
+✅ Analysis complete: /home/student/Desktop/groundeep-analysis/examples/configs/../results/groundeep/uniform/iDBN_1500_500
+======================================================================
+
+
+======================================================================
+🔄 Analyzing: iDBN_1500_500 | Distribution: zipfian
+======================================================================
+
+[1/11] Preparing model context...
+[ModelManager] Loading model: uniform from /home/student/Desktop/groundeep-analysis/local_assets/networks/uniform/dataset_10_10/uniform_i_/dbn_trained_uniform_1500_500.pkl
+[Adapter] Auto-detected DBN/RBM model with 2 layers
+[ModelManager] Loaded uniform on cpu (DBNAdapter)
+[ModelManager] Loading model: zipfian from /home/student/Desktop/groundeep-analysis/local_assets/networks/zipfian/dataset_10_10/zipfian_i_/dbn_trained_zipfian_1500_500.pkl
+[Adapter] Auto-detected DBN/RBM model with 2 layers
+[ModelManager] Loaded zipfian on cpu (DBNAdapter)
+
+[2/11] Saving label histograms...
+
+[3/11] Building probe features...
+
+[4/11] Running Power-Law Scaling Stage...
+[PowerFit] iDBN_1500_500/zipfian: b=0.500, R²=0.657
+
+[5/11] Running Linear Probes Stage...
+
+[6/11] Running Geometry Stage (RSA, RDM, Monotonicity, Partial RSA)...
+[Geometry] Analyzing layers: [2]
+[Monotonicity] Layer 2: R²=N/A
+[Geometry] statsmodels not available, skipping FDR correction.
+[RSA] Layer 2: labels=0.255, cumArea=0.224, CH=0.217
+[RDM] Layer 2: Saved 2 RDM matrices
+[Partial RSA] Layer 2: partial_rho=0.183
+
+[7/11] Running Reconstruction Stage (MSE, AFP, SSIM)...
+[Reconstruction] Analyzing layers: [2]
+[MSE] Layer 2: mean=0.03138
+[AFP] Layer 2: mean=0.57819
+[SSIM] Layer 2: skipped (scikit-image is required for SSIM computations.)
+
+[8/11] Running Dimensionality Stage (PCA, TSNE, UMAP)...
+[Dimensionality] Analyzing layers: [2]
+[PCA Geometry] Layer 2: anisotropy_within=0.040, anisotropy_between=0.574
+[PCA Report] Layer 2: rho_pc1=0.000, evr_pc1=0.000
+[UMAP] Layer 2: skipped (umap-learn not installed)
+
+[9/11] Running CKA Stage...
+
+[10/11] Running Behavioral Suite Stage...
+
+[11/11] Running PCA Diagnostics Stage (legacy)...
+⚠️  PCADiagnosticsStage is a legacy stub and is not implemented.
+   Use DimensionalityStage with pca_geometry and pca_report instead.
+
+======================================================================
+✅ Analysis complete: /home/student/Desktop/groundeep-analysis/examples/configs/../results/groundeep/zipfian/iDBN_1500_500
+======================================================================
+

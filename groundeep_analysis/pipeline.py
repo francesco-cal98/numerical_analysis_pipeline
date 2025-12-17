@@ -33,7 +33,11 @@ from groundeep_analysis.core import (
     EmbeddingExtractor,
     AnalysisContext,
 )
-from groundeep_analysis.internal.datasets import plot_label_histogram
+# Optional: plot_label_histogram (not critical for pipeline)
+try:
+    from groundeep_analysis.core.external_models.datasets.uniform_dataset import plot_label_histogram
+except (ImportError, AttributeError):
+    plot_label_histogram = None
 from groundeep_analysis.stages import (
     PowerLawStage,
     LinearProbesStage,
@@ -133,8 +137,8 @@ def _prepare_pipeline_context(
     labels_np = labels_uniform.detach().cpu().numpy()
 
     model_mgr = ModelManager()
-    model_mgr.load_model(str(spec.model_uniform), label="uniform")
-    model_mgr.load_model(str(spec.model_zipfian), label="zipfian")
+    model_mgr.load_model(str(spec.model_uniform), label="uniform", adapter_type=spec.adapter_type_uniform)
+    model_mgr.load_model(str(spec.model_zipfian), label="zipfian", adapter_type=spec.adapter_type_zipfian)
     extractor = EmbeddingExtractor(model_mgr)
 
     Z_uniform, Z_zipfian = extractor.extract_aligned_pair(
@@ -227,27 +231,28 @@ def _save_label_histograms_modular(ctx: ModularPipelineContext) -> None:
             return np.asarray(labels)[np.asarray(subset.indices)]
         return np.asarray(labels)
 
-    try:
-        labels_uniform = _dataset_labels("uniform")
-        if labels_uniform is not None and labels_uniform.size:
-            plot_label_histogram(
-                labels_uniform,
-                title="Label Histogram (uniform)",
-                save_path=hist_dir / "uniform.png",
-            )
-    except Exception as exc:
-        print(f"[Labels] Unable to generate uniform histogram: {exc}")
+    if plot_label_histogram is not None:
+        try:
+            labels_uniform = _dataset_labels("uniform")
+            if labels_uniform is not None and labels_uniform.size:
+                plot_label_histogram(
+                    labels_uniform,
+                    title="Label Histogram (uniform)",
+                    save_path=hist_dir / "uniform.png",
+                )
+        except Exception as exc:
+            print(f"[Labels] Unable to generate uniform histogram: {exc}")
 
-    try:
-        labels_zipf = _dataset_labels("zipfian")
-        if labels_zipf is not None and labels_zipf.size:
-            plot_label_histogram(
-                labels_zipf,
-                title="Label Histogram (zipfian)",
-                save_path=hist_dir / "zipfian.png",
-            )
-    except Exception as exc:
-        print(f"[Labels] Unable to generate zipfian histogram: {exc}")
+        try:
+            labels_zipf = _dataset_labels("zipfian")
+            if labels_zipf is not None and labels_zipf.size:
+                plot_label_histogram(
+                    labels_zipf,
+                    title="Label Histogram (zipfian)",
+                    save_path=hist_dir / "zipfian.png",
+                )
+        except Exception as exc:
+            print(f"[Labels] Unable to generate zipfian histogram: {exc}")
 
 
 def _build_probe_features_modular(
