@@ -2,16 +2,15 @@
 
 <div align="center">
 
-**Model-Agnostic Deep Learning Analysis Framework**
+**Deep Belief Network Analysis Toolkit for Numerosity Research**
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-*Comprehensive analysis toolkit for neural network representations with a unified adapter system supporting DBNs, VAEs, CNNs, and Transformers.*
+*Analysis pipeline for Deep Belief Networks trained on numerosity tasks with uniform and Zipfian distributions.*
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples) • [Roadmap](#-roadmap)
+[Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples)
 
 </div>
 
@@ -19,15 +18,15 @@
 
 ## 🎯 Overview
 
-**GROUNDEEP Analysis** is a modular, extensible framework for analyzing neural network representations across different architectures. Originally developed for Deep Belief Networks studying numerosity representations, it now supports any PyTorch model through a flexible **adapter system**.
+**GROUNDEEP Analysis** is a specialized toolkit for analyzing Deep Belief Network (DBN) representations in numerosity estimation tasks. It provides comprehensive analysis stages including power-law fitting, linear probes, representational similarity analysis (RSA), dimensionality reduction, and behavioral task evaluation.
 
-### Why GROUNDEEP Analysis?
+### Key Characteristics
 
-- **🔄 Model-Agnostic**: Works with DBNs, VAEs, CNNs, Transformers via unified adapter interface
-- **🧩 Modular Design**: 7+ analysis stages, each independently configurable
-- **📊 Comprehensive**: From geometry (RSA, RDM) to behavioral tasks to dimensionality reduction
-- **🚀 Production-Ready**: Type-safe, well-documented, extensively tested
-- **🔌 Extensible**: Add custom analysis stages or model adapters in minutes
+- **🎲 DBN-Focused**: Built specifically for Deep Belief Networks (standard DBN and iMDBN architectures)
+- **🔢 Numerosity Analysis**: Specialized for analyzing numerosity estimation and comparison tasks
+- **📊 Dual-Distribution**: Compares models trained on uniform vs. Zipfian distributions
+- **🧩 Modular Stages**: 7+ analysis stages covering geometry, probes, reconstruction, and behavioral tasks
+- **🔬 Research-Ready**: Developed for cognitive neuroscience research on numerical cognition
 
 ---
 

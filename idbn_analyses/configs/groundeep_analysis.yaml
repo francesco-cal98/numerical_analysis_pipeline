@@ -175,6 +175,8 @@ models:
   - arch: iDBN_1500_1500
     distribution: zipfian
     dataset_path: ../../local_assets/stimuli_dataset_10_10
+
+
     dataset_name: stimuli_dataset.npz
     model_uniform: /home/student/Desktop/Groundeep/networks/uniform/imdbn/imdbn_trained_uniform.pkl
     model_zipfian: /home/student/Desktop/Groundeep/networks/zipfian/dataset_10_10/zipfian_i_/dbn_trained_zipfian_1500_1500.pkl
