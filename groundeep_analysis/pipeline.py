@@ -90,10 +90,17 @@ def _prepare_pipeline_context(
     out_dir = output_root / spec.distribution / spec.arch_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # Check if this is a multimodal model (iMDBN)
+    is_multimodal = (
+        spec.adapter_type_uniform == "imdbn" or
+        spec.adapter_type_zipfian == "imdbn"
+    )
+
     dataset_mgr = DatasetManager(
         dataset_path=str(spec.dataset_path),
         dataset_name=spec.dataset_name,
         default_val_size=spec.val_size,
+        multimodal=is_multimodal,
     )
     # 
     uniform_val_loader = dataset_mgr.get_dataloader("uniform", split="val", full_batch=True)
@@ -115,6 +122,9 @@ def _prepare_pipeline_context(
     mask_np: Optional[np.ndarray] = None
     if filter_cfg:
         labels_cpu = labels_uniform.detach().cpu().numpy()
+        # If labels are one-hot encoded (multimodal), convert to scalar
+        if labels_cpu.ndim == 2:
+            labels_cpu = labels_cpu.argmax(axis=1) + 1  # +1 because labels are 1-indexed
         mask_np = np.ones(labels_cpu.shape[0], dtype=bool)
         if "min" in filter_cfg:
             mask_np &= labels_cpu >= int(filter_cfg["min"])
@@ -135,6 +145,9 @@ def _prepare_pipeline_context(
 
     base_batch = inputs_uniform.detach().cpu()
     labels_np = labels_uniform.detach().cpu().numpy()
+    # If labels are one-hot encoded (multimodal), convert to scalar
+    if labels_np.ndim == 2:
+        labels_np = labels_np.argmax(axis=1) + 1  # +1 because labels are 1-indexed
 
     model_mgr = ModelManager()
     model_mgr.load_model(str(spec.model_uniform), label="uniform", adapter_type=spec.adapter_type_uniform)

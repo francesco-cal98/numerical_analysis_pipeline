@@ -20,10 +20,18 @@ def compute_val_embeddings_and_features(model, upto_layer: int | None = None) ->
     assert model.val_loader is not None, "val_loader is None."
 
     embeds = []
+    is_imdbn = getattr(model, 'is_imdbn', False)
+
     for batch_data, batch_labels in model.val_loader:
         x = (batch_data.to(model.device) if not getattr(model, "text_flag", False) else batch_labels.to(model.device))
         x = x.view(x.size(0), -1).float()
-        z = model.represent(x) if upto_layer is None else model.represent(x, upto_layer=upto_layer)
+
+        # For iMDBN, pass labels to represent() for joint layer extraction
+        if is_imdbn:
+            z = model.represent(x, labels=batch_labels, upto_layer=upto_layer)
+        else:
+            z = model.represent(x) if upto_layer is None else model.represent(x, upto_layer=upto_layer)
+
         embeds.append(z.detach().cpu())
     E = torch.cat(embeds, dim=0)  # [N, D]
 
@@ -43,6 +51,7 @@ def compute_val_embeddings_and_features(model, upto_layer: int | None = None) ->
     chull_t = _get_feat(feats_src, "Convex Hull", "convex_hull", "convexhull")
     labels_t = _get_feat(feats_src, "Labels", "labels")
     density_t = _get_feat(feats_src, "Density", "density")
+    mean_item_size_t = _get_feat(feats_src, "Mean Item Size", "mean_item_size", "meanitemsize")
 
     def _to_1d_float(t):
         if t is None:
@@ -56,6 +65,7 @@ def compute_val_embeddings_and_features(model, upto_layer: int | None = None) ->
     chull = _to_1d_float(chull_t)
     labels = _to_1d_float(labels_t)
     density = _to_1d_float(density_t)
+    mean_item_size = _to_1d_float(mean_item_size_t)
 
     n = E.size(0)
 
@@ -75,6 +85,8 @@ def compute_val_embeddings_and_features(model, upto_layer: int | None = None) ->
         feats["labels"] = labels
     if density is not None and _check("density", density):
         feats["density"] = density
+    if mean_item_size is not None and _check("mean_item_size", mean_item_size):
+        feats["mean_item_size"] = mean_item_size
 
     return E, feats
 
@@ -115,6 +127,7 @@ def compute_joint_embeddings_and_features(model) -> tuple[torch.Tensor, dict]:
     chull = _to_1d_float(_get_feat(feats_src, "Convex Hull", "convex_hull", "convexhull"))
     labels = _to_1d_float(_get_feat(feats_src, "Labels", "labels"))
     density = _to_1d_float(_get_feat(feats_src, "Density", "density"))
+    mean_item_size = _to_1d_float(_get_feat(feats_src, "Mean Item Size", "mean_item_size", "meanitemsize"))
 
     n = E.size(0)
 
@@ -134,6 +147,8 @@ def compute_joint_embeddings_and_features(model) -> tuple[torch.Tensor, dict]:
         feats["labels"] = labels
     if density is not None and _check("density", density):
         feats["density"] = density
+    if mean_item_size is not None and _check("mean_item_size", mean_item_size):
+        feats["mean_item_size"] = mean_item_size
 
     return E, feats
 
@@ -317,6 +332,8 @@ def log_linear_probe(
     probe_targets = ["cum_area", "convex_hull", "labels"]
     if "density" in feats:
         probe_targets.append("density")
+    if "mean_item_size" in feats:
+        probe_targets.append("mean_item_size")
 
     summary_rows: List[dict[str, object]] = []
 
@@ -405,6 +422,8 @@ def log_joint_linear_probe(
     probe_targets = ["cum_area", "convex_hull", "labels"]
     if "density" in feats:
         probe_targets.append("density")
+    if "mean_item_size" in feats:
+        probe_targets.append("mean_item_size")
 
     summary_rows = []
 

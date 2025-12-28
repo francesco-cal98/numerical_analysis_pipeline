@@ -10,7 +10,7 @@ import torch
 from scipy import io
 
 from .ccnl_readout_dbn import forwardDBN
-from groundeep_analysis.internal.behavioral.CLs import SGD_class_fixed, beta_extraction_ref_z
+from .CLs import SGD_class_fixed, beta_extraction_ref_z
 
 
 def _to_tensor(arr, device, dtype=torch.float32):

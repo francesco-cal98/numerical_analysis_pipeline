@@ -39,6 +39,7 @@ class DatasetManager:
         default_test_size: float = 0.2,
         default_batch_size: int = 128,
         num_workers: int = 4,
+        multimodal: bool = False,
     ):
         """
         Initialize the dataset manager.
@@ -50,6 +51,7 @@ class DatasetManager:
             default_test_size: Default test split size
             default_batch_size: Default batch size for dataloaders
             num_workers: Number of worker processes
+            multimodal: If True, dataloaders return (images, one-hot labels). Default False.
         """
         self.dataset_path = dataset_path
         self.dataset_name = dataset_name
@@ -57,6 +59,7 @@ class DatasetManager:
         self.default_test_size = default_test_size
         self.default_batch_size = default_batch_size
         self.num_workers = num_workers
+        self.multimodal = multimodal
 
         # Lazy storage
         self._dataloaders: Dict[str, Dict[str, DataLoader]] = {}
@@ -201,6 +204,7 @@ class DatasetManager:
                 num_workers=self.num_workers,
                 val_size=val_size,
                 test_size=test_size,
+                multimodal_flag=self.multimodal,
             )
         elif distribution == "zipfian":
             train_loader, val_loader, test_loader = create_dataloaders_zipfian(
@@ -210,6 +214,7 @@ class DatasetManager:
                 num_workers=self.num_workers,
                 val_size=val_size,
                 test_size=test_size,
+                multimodal_flag=self.multimodal,
             )
         else:
             raise ValueError(f"Unknown distribution: {distribution}. Use 'uniform' or 'zipfian'.")

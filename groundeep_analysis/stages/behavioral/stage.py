@@ -58,12 +58,12 @@ def _missing_reason(module_candidates: Sequence[str]) -> str:
 
 
 FIXED_REFERENCE_MODULES = (
-    "groundeep_analysis.internal.behavioral.task_fixed_reference",
-    "task_fixed_reference",
+    "groundeep_analysis.stages.behavioral.fixed_reference",
+    "fixed_reference",
 )
 ESTIMATION_MODULES = (
-    "groundeep_analysis.internal.behavioral.task_numerosity_estimation",
-    "task_numerosity_estimation",
+    "groundeep_analysis.stages.behavioral.numerosity_estimation",
+    "numerosity_estimation",
 )
 
 

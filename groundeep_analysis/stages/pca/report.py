@@ -267,6 +267,89 @@ def _plot_label_histogram(ax, labels: np.ndarray):
     ax.set_title("Label histogram")
 
 
+def generate_pca_feature_colored_plots(
+    embeddings: np.ndarray,
+    features: Dict[str, np.ndarray],
+    *,
+    out_dir: Path,
+    n_components: int = 10,
+    random_state: int = 42,
+) -> None:
+    """Generate separate PCA plots colored by each feature.
+
+    Args:
+        embeddings: Neural representations [N, D]
+        features: Dictionary of features to visualize, each [N]
+        out_dir: Output directory for plots
+        n_components: Number of PCA components to compute
+        random_state: Random seed
+    """
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Compute PCA
+    pca, scores = _compute_pca(embeddings, n_components=n_components)
+
+    # Create a plot for each feature
+    for feature_name, feature_values in features.items():
+        if feature_values is None:
+            continue
+
+        # Convert to numpy if needed
+        if hasattr(feature_values, 'numpy'):
+            feature_values = feature_values.numpy()
+        feature_values = np.asarray(feature_values).flatten()
+
+        if len(feature_values) != embeddings.shape[0]:
+            continue
+
+        # Create 2D plot
+        fig, ax = plt.subplots(figsize=(8, 6))
+        scatter = ax.scatter(
+            scores[:, 0],
+            scores[:, 1],
+            c=feature_values,
+            cmap='viridis',
+            s=20,
+            alpha=0.7
+        )
+        ax.set_xlabel(f'PC1 ({pca.explained_variance_ratio_[0]:.2%} var)')
+        ax.set_ylabel(f'PC2 ({pca.explained_variance_ratio_[1]:.2%} var)')
+        ax.set_title(f'PCA colored by {feature_name}')
+
+        cbar = plt.colorbar(scatter, ax=ax)
+        cbar.set_label(feature_name)
+
+        fig.tight_layout()
+        safe_name = feature_name.replace("/", "_").replace(" ", "_")
+        fig.savefig(out_dir / f"pca_colored_by_{safe_name}.png", dpi=300)
+        plt.close(fig)
+
+        # Create 3D plot
+        fig = plt.figure(figsize=(8, 6))
+        ax = fig.add_subplot(111, projection='3d')
+        scatter = ax.scatter(
+            scores[:, 0],
+            scores[:, 1],
+            scores[:, 2],
+            c=feature_values,
+            cmap='viridis',
+            s=20,
+            alpha=0.7
+        )
+        ax.set_xlabel(f'PC1 ({pca.explained_variance_ratio_[0]:.2%})')
+        ax.set_ylabel(f'PC2 ({pca.explained_variance_ratio_[1]:.2%})')
+        ax.set_zlabel(f'PC3 ({pca.explained_variance_ratio_[2]:.2%})')
+        ax.set_title(f'PCA 3D colored by {feature_name}')
+
+        cbar = fig.colorbar(scatter, ax=ax, shrink=0.6, pad=0.1)
+        cbar.set_label(feature_name)
+
+        fig.tight_layout()
+        fig.savefig(out_dir / f"pca_3d_colored_by_{safe_name}.png", dpi=300)
+        plt.close(fig)
+
+
 def generate_pca_decomposition_report(
     embeddings: np.ndarray,
     labels: np.ndarray,

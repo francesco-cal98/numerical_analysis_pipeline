@@ -38,7 +38,9 @@ class UniformDataset(Dataset):
         #self.FA_list = data['FA_list']
         self.CH_list = data['CH_list']
         self.density_list = data['density'] if 'density' in data else None
-        #self.Items_list = data['item_size']
+
+        self.mean_item_size_list = data['mean_item_size'] if 'mean_item_size' in data else None
+        self.std_item_size_list = data['std_item_size'] if 'std_item_size' in data else None
 
 
         # create one-hot encoded label_list

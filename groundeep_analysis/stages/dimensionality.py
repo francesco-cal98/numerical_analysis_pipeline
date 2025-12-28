@@ -7,7 +7,7 @@ import torch
 import matplotlib.pyplot as plt
 
 from groundeep_analysis.stages.pca.geometry import run_pca_geometry
-from groundeep_analysis.stages.pca.report import generate_pca_decomposition_report
+from groundeep_analysis.stages.pca.report import generate_pca_decomposition_report, generate_pca_feature_colored_plots
 
 
 class DimensionalityStage:
@@ -25,6 +25,18 @@ class DimensionalityStage:
                 settings.get('tsne', {}).get('enabled', False) or
                 settings.get('umap', {}).get('enabled', False))
 
+    def _get_model_layers(self, model_obj):
+        """Get layers from model, handling both DBN and iMDBN."""
+        # Handle iMDBN (dict format)
+        if isinstance(model_obj, dict):
+            if 'image_idbn' in model_obj:
+                return getattr(model_obj['image_idbn'], 'layers', [])
+        # Handle iMDBN (object format)
+        elif hasattr(model_obj, 'image_idbn'):
+            return getattr(model_obj.image_idbn, 'layers', [])
+        # Handle standard DBN
+        return getattr(model_obj, 'layers', [])
+
     def _get_model_device(self, model_obj) -> torch.device:
         """Infer device from model."""
         try:
@@ -38,7 +50,7 @@ class DimensionalityStage:
             pass
 
         try:
-            layers = getattr(model_obj, "layers", [])
+            layers = self._get_model_layers(model_obj)
             if layers:
                 first_rbm = layers[0]
                 for attr_name in ("W", "c", "b", "weights"):
@@ -49,6 +61,40 @@ class DimensionalityStage:
             pass
         return torch.device("cpu")
 
+    def _extract_features(self, ctx: Any) -> Dict[str, np.ndarray]:
+        """Extract visual features from context bundle."""
+        features = {}
+
+        # Extract labels (numerosity)
+        if hasattr(ctx.bundle, 'labels'):
+            features['labels'] = np.asarray(ctx.bundle.labels)
+
+        # Extract cumulative area
+        if hasattr(ctx.bundle, 'cum_area'):
+            cum_area = ctx.bundle.cum_area
+            if cum_area is not None:
+                features['cum_area'] = np.asarray(cum_area).flatten()
+
+        # Extract convex hull
+        if hasattr(ctx.bundle, 'convex_hull'):
+            ch = ctx.bundle.convex_hull
+            if ch is not None:
+                features['convex_hull'] = np.asarray(ch).flatten()
+
+        # Extract density
+        if hasattr(ctx.bundle, 'density'):
+            density = ctx.bundle.density
+            if density is not None:
+                features['density'] = np.asarray(density).flatten()
+
+        # Extract mean_item_size if available
+        if hasattr(ctx.bundle, 'mean_item_size'):
+            mean_item_size = ctx.bundle.mean_item_size
+            if mean_item_size is not None:
+                features['mean_item_size'] = np.asarray(mean_item_size).flatten()
+
+        return features
+
     def _extract_layer_embeddings(self, ctx: Any, layers: List[int]) -> Dict[int, np.ndarray]:
         """Extract embeddings for specified layers."""
         dist_name = ctx.spec.distribution
@@ -58,7 +104,7 @@ class DimensionalityStage:
             else ctx.get_model("zipfian")
         )
 
-        model_layers = getattr(model_sel, "layers", [])
+        model_layers = self._get_model_layers(model_sel)
         if not model_layers:
             return {}
 
@@ -66,39 +112,82 @@ class DimensionalityStage:
         inputs_cpu = ctx.base_batch
         layer_embeddings = {}
 
+        # Check if this is an iMDBN model
+        is_imdbn = isinstance(model_sel, dict) and 'image_idbn' in model_sel and 'joint_rbm' in model_sel
+        if not is_imdbn and hasattr(model_sel, 'image_idbn') and hasattr(model_sel, 'joint_rbm'):
+            is_imdbn = True
+
         with torch.no_grad():
             inputs_device = inputs_cpu.to(device).view(inputs_cpu.shape[0], -1)
             cur = inputs_device
+
+            # Extract image layers
             for li, rbm in enumerate(model_layers, start=1):
                 cur = rbm.forward(cur)
                 if li in layers:
                     layer_embeddings[li] = cur.detach().cpu().numpy()
+
+            # For iMDBN, extract joint layer if requested
+            if is_imdbn:
+                joint_layer_idx = len(model_layers) + 1
+                if joint_layer_idx in layers:
+                    # Get labels and convert to one-hot
+                    labels_np = ctx.bundle.labels
+                    import torch.nn.functional as F
+                    labels_tensor = torch.tensor(labels_np, dtype=torch.long, device=device)
+                    # Shift labels if they're 1-indexed (1-32 -> 0-31)
+                    if labels_np.min() >= 1:
+                        labels_tensor = labels_tensor - 1
+                    num_classes = int(labels_np.max()) if labels_np.min() >= 1 else int(labels_np.max()) + 1
+                    labels_onehot = F.one_hot(labels_tensor, num_classes=num_classes).float()
+
+                    # Get joint_rbm
+                    if isinstance(model_sel, dict):
+                        joint_rbm = model_sel['joint_rbm']
+                    else:
+                        joint_rbm = model_sel.joint_rbm
+
+                    # Concatenate image latents + labels
+                    z_img = cur  # Last image layer output
+                    v_joint = torch.cat([z_img, labels_onehot], dim=1)
+
+                    # Forward through joint RBM
+                    h_joint = joint_rbm.forward(v_joint)
+                    layer_embeddings[joint_layer_idx] = h_joint.detach().cpu().numpy()
+
             del inputs_device
 
         return layer_embeddings
 
     def run(self, ctx: Any, settings: Dict[str, Any], output_dir: Path) -> None:
         """Run dimensionality reduction analyses on specified layers."""
+        # Get model info
+        dist_name = ctx.spec.distribution
+        model_sel = (
+            ctx.get_model("uniform")
+            if dist_name == "uniform"
+            else ctx.get_model("zipfian")
+        )
+        model_layers = self._get_model_layers(model_sel)
+
+        # Check if iMDBN
+        is_imdbn = isinstance(model_sel, dict) and 'image_idbn' in model_sel and 'joint_rbm' in model_sel
+        if not is_imdbn and hasattr(model_sel, 'image_idbn') and hasattr(model_sel, 'joint_rbm'):
+            is_imdbn = True
+
         # Determine which layers to analyze
         layers_config = settings.get('layers', 'top')
         if layers_config == 'all':
-            dist_name = ctx.spec.distribution
-            model_sel = (
-                ctx.get_model("uniform")
-                if dist_name == "uniform"
-                else ctx.get_model("zipfian")
-            )
-            model_layers = getattr(model_sel, "layers", [])
             layers = list(range(1, len(model_layers) + 1))
+            # For iMDBN, include joint layer
+            if is_imdbn:
+                layers.append(len(model_layers) + 1)
         elif layers_config == 'top':
-            dist_name = ctx.spec.distribution
-            model_sel = (
-                ctx.get_model("uniform")
-                if dist_name == "uniform"
-                else ctx.get_model("zipfian")
-            )
-            model_layers = getattr(model_sel, "layers", [])
-            layers = [len(model_layers)]
+            # For iMDBN, 'top' means joint layer (last layer of full model)
+            if is_imdbn:
+                layers = [len(model_layers) + 1]  # Joint layer
+            else:
+                layers = [len(model_layers)]  # Last image layer
         elif isinstance(layers_config, list):
             layers = [int(l) for l in layers_config]
         else:
@@ -216,6 +305,21 @@ class DimensionalityStage:
                         })
                     except Exception:
                         pass
+
+            # Generate feature-colored PCA plots
+            features_dict = self._extract_features(ctx)
+            if features_dict:
+                feature_plots_dir = pca_rep_dir / "feature_colored"
+                try:
+                    generate_pca_feature_colored_plots(
+                        embeddings=Z,
+                        features=features_dict,
+                        out_dir=feature_plots_dir,
+                        random_state=random_state,
+                    )
+                    print(f"[PCA Report] Layer {layer_idx}: generated {len(features_dict)} feature-colored plots")
+                except Exception as exc_feat:
+                    print(f"[PCA Report] Layer {layer_idx}: feature plots failed ({exc_feat})")
 
         except Exception as exc:
             print(f"[PCA Report] Layer {layer_idx}: failed ({exc})")

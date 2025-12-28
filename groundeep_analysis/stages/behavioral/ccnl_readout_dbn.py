@@ -21,8 +21,24 @@ def forwardrbm(self, v):
     return p_h, h
 
 
-def forwardDBN(self, X):
-    for rbm in self.layers:
+def forwardDBN(model, X):
+    # Handle both standard DBN and iMDBN models
+    if isinstance(model, dict):
+        # iMDBN: extract image_idbn component
+        if 'image_idbn' in model:
+            layers = model['image_idbn'].layers
+        else:
+            raise ValueError("Model dict does not contain 'image_idbn' key")
+    elif hasattr(model, 'image_idbn'):
+        # iMDBN object format
+        layers = model.image_idbn.layers
+    elif hasattr(model, 'layers'):
+        # Standard DBN
+        layers = model.layers
+    else:
+        raise ValueError("Model does not have 'layers' or 'image_idbn' attribute")
+
+    for rbm in layers:
         _X = torch.zeros([X.shape[0], X.shape[1], rbm.num_hidden], device=DEVICE)
         for n in range(X.shape[0]):
             Xtorch = torch.Tensor(X[n, :, :]).to(DEVICE)
